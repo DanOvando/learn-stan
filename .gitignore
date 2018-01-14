@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+documents/_ignore/
+documents/appfiles/
+*.html
+*.pdf
+

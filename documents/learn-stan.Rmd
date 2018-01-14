@@ -1,0 +1,768 @@
+---
+title: "A Practical Introduction to STAN"
+author: "Dan Ovando"
+date: "12/27/2017"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, cache = F)
+```
+
+```{r}
+library(rstan)
+library(rstanarm)
+library(tidyverse)
+library(patchwork)
+
+```
+
+
+# What's Stan and Why Use It?
+
+Stan is a programming language designed to make statistical modeling easier and faster, especially for Bayesian estimation problems. Stan can help you estimate complex models with large numbers of parameters, and can generally do it faster than alternative like BUGS/JAGS. 
+
+That all sounds good, but what why is that useful for me? Suppose you have a hierarchical ecological modeling problem with data clustered by space, time, and species, such as estimating the effect of ocean temperatures on coral growth. You can use Stan to fit that model (and it will likely be faster than BUGS/JAGS if you're already used to working in those platforms). Suppose just want to ues informative priors to help fit a growth model. You can use Stan for that. Suppose you just prefer Bayesian analysis and want to run a simple multiple regression. Stan can do that. 
+
+The purpose of this document is not to illustrate or debate Bayesian analysis, but rather assumes a general knowledge and interest in model fitting, and instead seeks to provide a path to get started using Stan for the practical quantiative researcher. This is not a deep dive into the inner workings of Stan and model fitting - explanations and examples are designed to try and help people get the hang of using Stan. There are many great resources to understand the inner workings of Stan and provide higher-level examples; this is intended as a bridge to help get people there. 
+
+## How does Stan work?
+
+Stan is a programming language that allows you to write and fit models. It is also "compiled language", meaning that you have to write a model, then compile it to run it. This is unlike interpreted languages like R that let you more or less run code as you go. This can be a pain if you're not used to that sort of thing, but it helps make Stan much faster than saying writing the same model in R. We'll get into this later. 
+
+
+Stan's key feature are a series of tools for numerical model fitting, i.e. algorithms that help you can't be fit by analytical methods, or simpler algorithms like those behind `optim`. While Stan provides a few different mode fitting algorithms, we're going to focus on the markov chain monte carlo (MCMC) based methods here. 
+
+MCMC's are an incerdibly useful class of algorithms that can be used to fit complex models provide Bayesian inference to statistical problems. 
+
+An MCMC works more or less like this
+
+
+1. Pick some initial parameters
+
+2.  See how well those parameters fit the data (Calculate the posterior probability of those parameters given your data, the likelihood, and priors)
+
+3. Pick a new set of parameters through some function. 
+
+4. Accept or reject the new parameters by some function proportional to how much the new parameters improve the model fit.
+
+5. Repeat the process a lot. 
+
+This simple algorithm can be shown to always converge on an approximation of the posterior probability distribution of the model eventually. The challenge then is mostly in designing functions for selecting and accepting/rejecting new values that will help the algorithm converge in your lifetime. 
+
+That's where Stan comes in. If you write the model, Stan has a number of built in algorithms for helping you use MCMC to fit and diagnose that model quickly and efficiently. It's beyond the scope of this article or my ability to explain perfectly how it does this, but @Monahan2016 provides a really great summary of the mathematics behind Stan's algorithms, that I will now butcher. 
+
+
+## Divergence
+
+## Treedepth
+
+## Example
+
+
+```{r}
+
+```
+
+
+
+....
+
+# R and STAN workflow
+
+Now that you've hopefully developed a general idae of what Stan is and why you might like to use it, we're going to dig into actual using it. 
+
+This is just generally good practice: before you start frantically coding you should sit down and write out your model. @Hobbs provides a great introduction on how to do this if you're not familiar with the process. 
+
+You can certainly do your entire analysis in Stan by itself. However, every language has it's purpose, and the purpose of Stan is not fast and easy data manipulation. The good news is that Stan has clearnly interfaces with other programming languages like R and Python, allowing you to do a lot of the complex data manipulation in languages better suited to those tasks. You can then pass your processed data to Stan to do the model fitting, and then analyze your results back in say R. 
+
+The most useful way to write a Stan model is in its own file, with the extension `.stan` (there are a few other ways but we're not going to cover them). 
+
+
+A Stan model in a .stan file is broken into a number of "blocks", each of which define a particular part of the model. There are several different possible blocks, but to start with we're going to work with the three that every model has to have: `data`, `parameters`, and `model`
+
+```{stan, eval = F, output.var="ex1"}
+
+data{
+// load in data
+}
+
+parameters{
+// define parameters the model is trying to estimate
+
+}
+model{
+
+// the posterior probability function
+
+}
+
+
+```
+
+We'll learn the basics of Stan by working trying to fill in this model one step at a time, using the fitting of a Beverton-Holt stock-recruitment relationship as an example. 
+
+## Write your model
+
+We are going use data from the RAM Legacy Stock Assessment Database to try and fit a Beverton-Holt stock recruitment relationship using the steepness parameterization from @Dorn2002 (for reaons that will become apparent). 
+
+To back up, a stock recruit relationship's job is to say, for a given amount of observed spawning biomass in a fishery, how many new fish (recruits) enter the population. 
+
+
+We can write a general BH model by
+
+$$ R = \frac{\alpha{SSB}}{1 + \beta{SSB}}$$
+
+Where SSB is spawning stock biomass (the biomass of reproductively mature fish in the population),  $\alpha$ is the maximum average number of recruits (new fish) possible in the population, and $\beta$ is the amount of SSB needed to produce on average $\alpha{/2}$
+
+```{r, echo = F}
+
+alpha <- 100
+
+beta <- 200
+
+data_frame(ssb = 0:1000) %>% 
+  mutate(recruits = alpha * ssb / (beta + ssb)) %>% 
+  ggplot(aes(ssb, recruits)) + 
+  geom_line() + 
+  geom_vline(aes(xintercept = beta), color = 'red') + 
+  geom_hline(aes(yintercept = alpha / 2), color = 'blue')
+
+
+
+```
+
+
+The problem here is that $\beta$ is obviously very specific to each species, making it difficult to really say much about the resilience of a species based on that parameter. To that end @Mace1988 provided a reparameterization of thd BH equation using a term called "steepness" (*h*), which is more or less the slope of the stock-recruitment when SSB is 20% of max (i.e. unfished) SSB. This allows for species with vastly different stock sizes to be compared in terms of their steepness, with species with higher values of steepness being more resilient to fishing than those with lower steepness
+
+
+$$ \frac{0.8(\alpha){(h){{SSB}}}}{0.2 (\alpha)(1 - h) + (h - 0.2)SSB}$$
+
+```{r}
+
+alpha <- 1000
+
+
+# ssb <- 0:2000
+# 
+# h = 0.4
+
+# recruits <- (0.8 * alpha * h * ssb) / (
+#             0.2 * alpha * (1 - h) +
+#               (h - 0.2) * ssb
+#           )
+
+
+cross_df(list(ssb = 0:1000, h = c(0.21,0.6,0.8))) %>% 
+  mutate(recruits = (0.8 * alpha * h * ssb) / (
+            0.2 * alpha * (1 - h) +
+              (h - 0.2) * ssb
+          )) %>% 
+  ggplot(aes(ssb, recruits, color = factor(h))) + 
+  geom_line() + 
+  geom_hline(aes(yintercept = alpha), color = 'blue')
+
+cross_df(list(ssb = 0:1000, h = c(0.2,0.6,1))) %>% 
+  mutate(recruits = (0.8 * alpha * h * ssb) / (
+            0.2 * alpha * (1 - h) +
+              (h - 0.2) * ssb
+          )) %>% 
+  ggplot(aes(ssb, recruits, color = factor(h))) + 
+  geom_line() + 
+  scale_color_discrete(name = 'steepness')
+
+```
+
+Our goal then is going to be to try and estimate steepness and $\alpha$ for some real data
+
+## Examine spawning and recruitment data
+
+
+```{r}
+
+sr_data <- read_csv(here::here("data","rlsadb_v4.25_ssb_recruits.csv")) %>% 
+  set_names(tolower)
+
+sr_plots <- sr_data %>%
+  select(stockid, stocklong, r, ssb) %>% 
+  na.omit() %>% 
+  nest(-stockid, -stocklong) %>% 
+  mutate(sr_plot = map(data, ~ ggplot(.x,aes(ssb,r)) + 
+  geom_point()))
+
+trelliscopejs::trelliscope(sr_plots, name = 'sr_plots', panel_col = 'sr_plot', self_contained = TRUE)
+
+```
+
+
+Let's look at one stock in particular 
+
+
+```{r}
+
+mack_data <- sr_data %>% 
+  filter(stockid == 'CMACKTSST') %>% 
+  select(stocklong, year, ssb, r)
+
+mack_data %>% 
+  ggplot(aes(ssb, r)) + 
+  geom_point()
+
+```
+
+So, there seems to be a relationship, but it's messty. Our goal now will be to use Stan to estimate a BH curve for this stock. 
+
+Let's start by writing out the model for this model. We have three parameters we need to estimate, steepness *h*, maximum recruitment $\alpha$, and some error term $\sigma$. 
+
+We can write this as
+
+$$[\alpha,h,\sigma | r] \propto [ r | \alpha,h,\sigma][\alpha][h][\sigma]  $$
+
+Where *r* are our recruitment data. That's just a conceptual framework for the model; we can write it more clearly by specifying the model in terms of distributions. 
+
+$$[\alpha,h,\sigma | r] \propto normal( log(r) | bh(h,\alpha),\sigma) * unif(h|0.2,1) * normal(\alpha|10*max(r),0.1*max(r)) * cauchy(\sigma|0,5)  $$
+
+In english, this says that we believe that recruitment is a log-normal process, while specifying appropriate priors for our other parameters. E.g. we know that *h* has to be between 0.2 and 1, and it's reasonable to think that max recruitment is someting larger than the largest recruitment ever observed (**much more care needs to be taken in prior construction, this is just an example**) 
+
+
+Easiest way to think about the log normal distribution is a normal distribution with a cv instead of a sigma . So, you can just calculate the cv for your data and that should be sigma in log space 
+
+## Write our stan model
+
+
+Now that we know what we need to model, we just have to code it. We'll work step by step through 
+this process now
+
+
+Now that we have our `.stan` file written, we just need to pass out data to it and fit the model. the `rstan` package makes it really easy to interface between `R` and `Stan`. 
+
+The first step is passing data from the `R` environment to `Stan`. You remember our `DATA` blcok in our `.stan` file? We simply need to pass create a list in `R` containing named objects matching each of the entries in our `DATA` block. 
+
+Once we've done that, we use the `stan` function to fit our model. 
+
+There are a few options that are important to specify in the call to `stan`
+
+  - The `file` entry specifies the path to the `.stan` file containing your model
+  
+  - `data` is your list of data 
+  
+  - `chains` specifies the number of chains used in the model fitting. Any actual model run should contain multiple chains to verify convergence, but you can start with one chain for diagnostics. If you have more than one chain, by default `stan` will run them one after another, so if your model takes a long time this can be daunting. However, you can also specify `cores`. If you set `cores` to more than 1, then `Stan` will run each chain in parallel on different cores. So, if you specify 4 chains and 4 cores, each chain will be run simultaneously on separate cores, so your run time should be about the same as 1 chain on 1 core
+  
+  - `warmup` is the number of model iterations dedicated to burnin/tuning/whatever you want to call it. This number defaults to half of `iter` (the total number of model iterations), but if you start to do large iteration runs (e.g. 20,000), there isn't neccesarily a need to do 10,000 warmup runs. If you've tested your model on lower iterations and diagnostics look good with say 1,000 warmup runs, there shouldn't be any problem with leaving warmup at 1,000 and setting iterations to 20,000; it just gives you a lot more samples to play with. 
+  
+ - `init` allows you to pass initial parameter values for each chain. This is optional, but can help **A LOT**. By default, `Stan` randomly draws numbers between -2 and 2 for initial values for each parameter. This works if you're model is reasonably centered. But, if you're working in a situation where parameters can vary wildly from that (say estimating carrying capacity for a population), this range is going to be a really bad guess if the true parameter value is in the millions. If your model is correctly written, `Stan` will get to the right result eventually, but it will take a lot longer if you feed it a really poor starting guess. There are a few different ways to set `init`, I'm just going to cover passing explicit starting guesses. `init` must by a list of list, of the general form `list(chain_1 = list(h = 0.2), chain_2 = list(h = 0.8))`. The inner lists contain are names objects for any parameters in the model. In this case, I have a paremter named `h` in the model, and I'm going to specify an intitial guess of `h` at 0.2 for the first chain, and 0.8 for the second chain. It is very important if you are manually specifying starting guesses to have different initial values for your parameters, since a test of model convergence is whether or not different chains initiated at different values reach the same result. Any parameters you do not manually specify a starting guess for `stan` goes back to the default random number between -2 and 2
+ 
+
+```{r, message=F, warning=F}
+
+warmups <- 1000
+
+total_iterations <- 2000
+
+max_treedepth <-  10
+
+data <- list(n = nrow(mack_data),
+               r = mack_data$r,
+             ssb = mack_data$ssb,
+               max_r = max(mack_data$r)
+             )
+
+mack_fit <- stan(file = here::here("scripts","bh_model.stan"),
+                 data = data,
+                 chains = 4,
+                 warmup = warmups,
+                 iter = total_iterations,
+                 cores = 1,
+                 refresh = 250,
+                 init = list(list(h = 0.4, alpha = 2 * data$max_r),
+                             list(h = 0.21, alpha = 3 * data$max_r),
+                             list(h = 0.8, alpha = 1 * data$max_r),
+                             list(h = 0.3, alpha = .8 * data$max_r)),
+                 control = list(max_treedepth = max_treedepth,
+                                adapt_delta = 0.95))
+
+
+```
+
+
+## Running Diagnostics
+
+Now that we have a model run, it's time to examine our fits. 
+
+In my opinion, `rstanarm::launch_shinystan` is by far the best way to do this. The folks at `Stan` built a pretty amaing interface (`shinystan`) that automatically puts together a wide array of numeric and graphical diagnostics that they recommend running on `Stan` model. 
+
+We'll walk through this together, but if you're reading this on your own, I recommend running `?launch_shinystan` and taking a look at their examples to get a feel for what it can do. 
+
+```{r, eval = F}
+
+rstanarm::launch_shinystan(mack_fit)
+
+```
+
+However, we might also want to be able to run some important diagnostics from within R, either for model comparison or inclusion in reports/publications, so we'll now look at use the fitted `stan` model in R. 
+
+
+Calling `stan` creates an object of class `stanfit`
+
+```{r}
+
+class(mack_fit)
+
+```
+
+`stanfit` options are designed to interface with a few base R commands that you're use to, like `summary` and `plot` (though if you have lots of paremeters simply calling these can be pretty messy)
+
+```{r}
+
+summary(mack_fit)
+
+```
+
+The plot command is a great way to get a first glance at your fits
+
+```{r}
+plot(mack_fit)
+```
+
+Before we look at using our model though, let's take a look at a few diagnostics to try to evaluate our model fit. **DISCLAIMER** You should put a lot more thought and effort in model model dianogsis in real cases, this is just an example of accessing some of the starting points in this process. 
+
+The first thing we can check is for the presence of "divergent" transitions (see earlier section for a reminder on what these are). Divergent transition during the sampling period of your model (the iterations after the burnin) are sign that there maybe a problem with your model. We'll talk about dealing with these later, but for now here's how to see if they happened. 
+
+
+`rstan` has a few functions to check these things
+
+```{r}
+
+rstan::check_divergences(mack_fit)
+
+```
+
+We can also look manually at these diagnostics using the output of `rstan::get_sampler_params`. `get_sampler_params` returns a list with one object per chain. Each object is a matrix showing diagnostics of each of the stored iterations from the model fitting (by default `get_sampler_params` includes the warmup iterations, you can set the option `inc_warmpup = FALSE` to omit these from the report if you want)
+
+```{r extract-diagnostics}
+
+
+mack_diagnostics <- rstan::get_sampler_params(mack_fit) %>% 
+  set_names(1:4) %>% 
+   map_df(as_data_frame,.id = 'chain') %>% 
+  group_by(chain) %>% 
+  mutate(iteration = 1:length(chain)) %>% 
+  mutate(warmup = iteration <= warmups)
+ 
+
+mack_diagnostics %>% 
+  group_by(warmup, chain) %>% 
+  summarise(percent_divergent = mean(divergent__ >0)) %>% 
+  ggplot() +
+  geom_col(aes(chain, percent_divergent, fill = warmup), position = 'dodge', color = 'black') + 
+  scale_y_continuous(labels = scales::percent)
+
+```
+
+We see then that across all chains,  we had no divergenes during the sampline period (after the warmups), which is what we want to see!
+
+`treedepth` is another really important thing to take a look at. Remember how the HMC algorithm works (more or less). Ideally, a new candidate draw from the parameter space is selected from a place where the likelihood bends back on itself. If you think of the posterior probability space like a circular racetrack, the sampler is a runner on that racetrack. The runner starts off on the left side of the track and starts running north, goes around the bend, and then starts running south. The HMC algorithm would stop and try a new parameter at that point, where the runner has fully turned around. So that sounds great if you've got a small track to run on. Suppose though that you are on a 10,000 mile track. Your runner is going to have to run a looooong way before things start to bend around. Or, suppose your runner is on a straight line, the runner is never going to turn around, and so the HMC algorithm would just keep running forever! That's where the `max_treedepth` option comes in. HMC will select a candidate parameter value when the parameter space bends back on itself OR when the number of steps specified by `max_treedepth` is reached. Basically, if the algorithm gets to `max_treedepth`, the runner says "phew, I'm tired, I'm stopping here", evaluates that point, and then tries again for another iteration. 
+
+By default, `max_treedepth` is set to 10. So, we should check and make sure that our model isn't bumping up against `max_treedepth` a bunch. If it is, that means that the model is selecting candidate draws based on hitting this cap, rather than properties of the posterior probability. 
+
+
+```{r}
+
+mack_diagnostics %>% 
+  ggplot(aes(iteration, treedepth__, color = chain)) + 
+  geom_line() + 
+  geom_hline(aes(yintercept = max_treedepth), color = 'red')
+
+```
+
+
+Looks like we're good, the treedepth of each all of our iterations was below the max_treedepth, meaning that stan was selected the parameters for that iteration. 
+
+If you're curious, you can also see the warmup process through the `stepsize` parameter. `Stan` uses the warmup period to tune the `stepsize` parameter to achieve a target acceptance rate (specified by `adapt_delta`). You can think of stepsize like resolution. A big `stepsize` means the model will quickly cover the entire picture of the posterior, but the picture will be really fuzzy, and if the posterior probability surface has important fine scale variation, the model will miss them. A really small stepsize will produce a really high resolution picture, but it will wake a lot longer to make that picture. So, a great feature of `stan` is it uses this target acceptance rate to find the right stepsize for the model. 
+
+
+```{r}
+
+mack_diagnostics %>% 
+  ggplot(aes(iteration, stepsize__, color = chain)) + 
+  geom_line() 
+
+```
+
+
+
+
+There are many more diagnostics for the actual sampler, but those are two of the really critical ones. Just becasue the divergences and treedepth look good doesn't mean that your model doens't have problems that deeper diagnostics would reveal, but seeing problems in those two diagnostics should give you a huge red flag right off the bat. 
+
+You can test these things by changing the `control` options in your call to `stan`. Try for example setting `adapt_delta = 0.5` or `max_treedepth = 2`. You'll see that you start to develop divergences in the first case, since in order to achieve that target acceptance rate `stan` sets the stepsize quite large, meaning that you miss important parts of the parameter space and create divergences. In the second case you'll start to see that the treedepth start so bump up against the `max_treedepth`. 
+
+While these are extreme examples, this also gives an idea of a first step at fixing these problems if they pop up: if you fit a model and you get divergences, the first thing you can try is to increase `adapt_delta` (in fact, `Stan` will suggest as much to you if this happens). If you're bumping up against `max_treedepth`, increase `max_treedepth`! If either of these don't solve the problem, then you'll need to start think about the specification of your model, which we'll cover a little later. 
+
+
+### Parameter Diagnostics
+
+Now that we've taken a look at the highest-level red flags (divergences and treedepth) and satisfied ourselves that we're in the clear, we can start to diagnose individual parameter estimates. There are a lot of ways to look at the these, the most useful starting point in my opinion is to extract summary statistics on each model parameter. You can do that by `summary(my_model)$summary`. `summary` on it's own prints out summaries of each parameter, the `$summary` part allows you to access and store the data behind the printed statistics. 
+
+```{r}
+ mack_summary <- summary(mack_fit)$summary %>% 
+  as.data.frame() %>% 
+  mutate(variable = rownames(.)) %>% 
+  select(variable, everything()) %>% 
+  as_data_frame()
+
+mack_summary
+```
+
+There are two really important diagnostic statistics hidden in this summary:
+
+  - `n_eff`: the effective sample size
+
+  - `Rhat`: the "Gelman and Rubin potential scale reduction statistic"
+  
+
+`n_eff` measures the effective sample size of that particular parameter. Remember that each iteration of the HMC is based off the parameter value on the previous iteration XX. Ideally though, if the algorithm works correctly, the parameter chosen at the next iteration will be independent of that early parameter value (this is what "thinning" looks to accomplish in other MCMCs, though you can also thin using HMC). If you're not doing a very efficient job at sampling the parameter space though, parameter values at a given iteration are more likely to be close to the parameter values at the last iteration. This means that these parameters aren't really independent, and so if you have 1000 draws from the posterior, you might not actually have 1000 independent samples of the parameter, but rather some smaller number of truly "independent" draws. 
+
+So, the mack `n_eff` is the sum of the sampling iterations across all chains. In this case, we have 4 chains, with 2000 iterations, half of which are warmup, meaning we sample 1000 iterations in each chain, so the max `n_eff` possible in this case is 4000
+
+```{r}
+
+mack_summary %>% 
+  ggplot(aes(n_eff)) + 
+  geom_histogram() + 
+  geom_vline(aes(xintercept = 4000), color = 'red')
+
+```
+
+Most of our parameters have a fairly high `n_eff`, though we see a few are somewhat lower. The `Rhat` statistic helps tell us whether these paremeters are so poorly sampled that we have a problem. More or less `Rhat` tells you whether or not each of the chains has reached a stable posterior distribution, despite starting at different starting values. Gelman recommends that `Rhat` for each parameter be less than 1.1
+
+```{r}
+
+mack_summary %>% 
+  ggplot(aes(Rhat)) + 
+  geom_histogram() + 
+  geom_vline(aes(xintercept = 1.1), color = 'red')
+
+```
+
+Looks like we're good! However, if you're concerned effective sample size of some of your parameters, the easiest thing to do is simply increase the total number of iterations and especialyl the warmup period. E.g. in this case we could move to 4000 iterations per chain with 2000 warmup iterations. 
+
+So now that we've checked some individual parameter diagnostics, we can take a look at our parameter estimates themselves. 
+
+
+Going back to the summary we created, you'll notice that `stan` kindly calcualted mean values and credible intervals for us. 
+
+Remember that we had three parameters in our model, steepness `h`, max recruits $\alpha$, and our standard deviation of the log recruits $\sigma$. Let's take a look at the fits for those variables
+
+```{r}
+
+mack_summary %>% 
+  filter(variable %in% c('h','alpha','sigma')) %>% 
+  ggplot() + 
+  geom_linerange(aes(variable, ymin = `2.5%`,ymax = `97.5%`)) + 
+  geom_crossbar(aes(variable, mean, ymin = `25%`, ymax = `75%`), fill= 'grey') + 
+  facet_wrap(~variable, scales = 'free')
+ 
+```
+
+So, we see that most of our credible intervals are fairly tight, though our estimate of unfished recruits $\alpha$ is somewhat wide.
+
+
+That's all well and good, but what we might really want to see are the actual recruits estimated by our model. `stan` is great for this as well: Since we calculated our estimates of recruitment in the `transformed parameter` block, `stan` automatically stores the values for recruitment associated with each draw from the posterior, giving us our credible intervals for our recruitment estimates as well!
+
+Our recruitment estiamtes were stored in the `rhat` object
+
+```{r}
+
+
+rhat <- mack_summary %>% 
+  filter(str_detect(variable,'rhat') & !str_detect(variable,'log') & !str_detect(variable,'pp'))
+
+mack_data <- mack_data %>% 
+  mutate(mean_rhat = rhat$mean,
+         lower = rhat$`2.5%`,
+         upper = rhat$`97.5%`)
+
+mack_data %>% 
+  ggplot() + 
+  geom_point(aes(ssb, r)) + 
+  geom_line(aes(ssb, mean_rhat)) + 
+  geom_ribbon(aes(ssb, ymin = lower, ymax = upper), alpha = 0.25)
+
+```
+
+Looks good! So, the black line is our model's estimate of the expected recruits at a given ssb, and the grey ribbon corresponds to the 95% credibility interval around this expected value. 
+
+
+If we're sticklers for the truely raw data, we can also look at the parameter values at each of our samples, rather than using `summary` to process them for us. We can get at those using `rstan::extract()`. Note: by default `rstan::extract()` excludes the warmup iterations, and reshuffles the draws. If you want to keep the draws in their original order (for example to check for autocorrelation), you can set `rstan::extract(permuted = FALSE)`, and if you want to include the warmup period `rstan::extract(inc_warmup = TRUE)`
+
+
+```{r}
+mack_mcmc <- mack_fit %>% 
+  rstan::extract()
+
+mack_pars <- mack_mcmc[ c('h','alpha','sigma')] %>% 
+  map_df(as_data_frame, .id = 'variable')
+
+mack_pars %>% 
+  ggplot(aes(value, fill = variable)) + 
+  geom_density() + 
+  facet_wrap(~variable, scales = 'free') + 
+  coord_flip()
+  
+```
+
+
+### Posterior Predictive Analysis
+
+So far, we've fit our model, checked some critical diagnostics, and examined our model fits. `Stan` also allows us to examine "posterior predictive" fits, an immensely powerful tool in diagnosing Bayesian models, and in using Bayesian models for prediction. 
+
+A huge advantage of Bayesian modeling is that it forces us to very explicitly write out our model in terms of our beliefs about the error structures of the model. For example, here we have assumed that our observed recruitment data come from a log-normal distribution, that steepness comes from a uniform distribution on the intervel 0.2-1, etc. 
+
+Together then, each of these distributions make up the posterior probability distribution, which `stan` helps us sample from. This also means though that we have a very clear hypothesis about the underlying process generating our data. So, if our hypothesis is right, our model should be able to generate data that looks very similar to the data we actually observed. 
+
+In this case, our data are observed recruits. We hypothesize that these observed recruits come from a distribution. 
+
+
+$$log(recruits) \sim normal(bh(h,\alpha,ssb), \sigma)$$
+
+So, using our draws from the posterior of h, $\alpha$, $\sigma$ and our observed SSB, we can use this model to generate draws of log_recruits, and compare those to the values that we actually see. 
+
+```{r}
+
+
+pp_rhat <- mack_mcmc[ 'pp_rhat'] %>% 
+  map_df(as_data_frame, .id = 'variable') %>% 
+  gather(observation,value, -variable)
+
+ggplot() + 
+  geom_density(data = pp_rhat, aes(value,fill = 'Posterior Predictive'), alpha = 0.5) + 
+  geom_density(data = mack_data, aes(r, fill = 'Observed'), alpha = 0.5)
+
+```
+
+So, we see that our data does a reasonable job of reproducing the overall shape of the observed data, a good sign! We can do a lot more with this type of analysis, for example testing the ability of the posterior predictive to estimate "test statistics" like the min, max, mean, and standard deviation of the observed data, `launch_shinystan` does several of these for you. 
+
+We can also use the posterior predictive to use our model to make predictions. Suppose we monitor another year of data for SSB, and we want to use our model to predict the recruits that that SSB will produce. We can use the posterior predictive to generate replicates from our distribution across our posterior draws of *h*, $\alpha$, and $\sigma$. To illustrate this process, we can look at the posterior predictive distributions for the SSBs we used to fit the model 
+
+```{r}
+
+rhat <- mack_summary %>% 
+  filter(str_detect(variable,'rhat') & !str_detect(variable,'log') & !str_detect(variable,'pp'))
+
+pp_rhat <- mack_summary %>% 
+  filter(str_detect(variable,'pp_rhat')) %>% 
+  mutate(ssb = mack_data$ssb)
+
+
+mack_data <- mack_data %>% 
+  mutate(mean_rhat = rhat$mean,
+         lower = rhat$`2.5%`,
+         upper = rhat$`97.5%`)
+
+mack_data %>% 
+  ggplot() + 
+  geom_point(aes(ssb, r)) + 
+  geom_line(aes(ssb, mean_rhat)) + 
+  geom_ribbon(aes(ssb, ymin = lower, ymax = upper), alpha = 0.25) + 
+  geom_line(data = pp_rhat, aes(ssb, mean), color = 'red') +
+  geom_ribbon(data = pp_rhat, aes(ssb, ymin = `2.5%`, ymax = `97.5%`), alpha = 0.25, fill = 'red') 
+
+```
+
+We see that this interval is much broader than our credibility intervals for the mean of the fitted values. This is because the grey shaded area is our credibility interval of the expected values of our model for the observed data. That is different though than our expected value for a new observation of SSB. 
+
+All together then, this simple model walks us through the basic steps of using `stan` to fit models:
+
+  1. Writing our model (in terms of likelihoods)
+  
+  2. Coding our model
+  
+  3. Passing our data from R to Stan
+  
+  4. Performing high-level diagnostics on our model fit (divergence, trees, Rhat, etc.)
+  
+  5. Examining the fitted coefficients of our model
+  
+  6. Examining the posterior predictive statistics
+  
+  7. Using our coefficients for prediction
+  
+
+Each of these steps warrants more careful consideration than we have gone through here, but this is a solid foundation to base future analysis are, that will work with simple models like this, or much more complex models, the process stays the same. 
+
+## Model Comparison
+
+So far, we've been focused on diagnosing our model to make sure that it has in fact converged and to understand the behavior of our model if it has. However, to put it bluntly, if you're only writing one model, you're doing it wrong. We made a huge number of assumptions in the design of this model, from the functional form of our stock-recruitment relationship, to our choices of likelihoods and priors. 
+
+Our next step should be to test these assumptions by constructin alternative models and comparing them. Luckily, `stan` has a number of tools available to help us with model comparison. 
+
+
+# CPUE Standardization
+
+# State-space Schaefer Model
+
+
+```{r}
+
+hake <- read.table(here::here("data","schaefer.dat"), header=TRUE)
+
+# hake <- read_csv(here::here("data","tuna_data.csv"))
+
+
+hake <- hake %>% 
+  set_names(tolower) #%>% 
+  # mutate(year = 1:nrow(.))
+
+hake %>% 
+  gather('variable','index', -year) %>% 
+  ggplot(aes(year, index, color = variable)) + 
+  geom_point() + 
+  facet_wrap(~variable, scales = 'free_y')
+```
+
+```{r}
+hake_data <- list(n_years = nrow(hake),
+                  years = hake$year,
+                  harvest = hake$catch,
+                  index = hake$index)
+
+
+initials <- list(log_r=-1.010073 , log_k= 7.973823, iq=2822.014, sigma_process=1, sigma_observation=1)
+             # log_pop_devs=rep(0, len=nrow(hake)))
+
+initials2 <- list(log_r=-0.5010073 , log_k= 3.973823, iq=500, sigma_process=1, sigma_observation=1) 
+             # log_pop_devs=rep(0, len=nrow(hake)))
+
+set.seed(22)
+a <- Sys.time()
+hake_fit <- stan(
+  file = here::here("scripts","schaefer.stan"),
+  data = hake_data,
+  chains = 1,
+  warmup = 10,
+  iter = 50,
+  cores = 1,
+  refresh = 25,
+  init = list(initials))
+
+
+hake_fit <- stan(
+fit = hake_fit,
+data = hake_data,
+  chains = 1,
+  warmup = 1000,
+  iter = 2000,
+  cores = 1,
+  refresh = 25,
+init = list(initials),
+control = list(max_treedepth = 15,
+                adapt_delta = 0.99,
+                adapt_engaged = TRUE ))
+
+  # init = list(list(log_k = log(10))),
+
+Sys.time() - a
+
+```
+
+
+plot results
+
+```{r}
+
+hake_summary <- summary(hake_fit)$summary %>% 
+  as.data.frame() %>% 
+  mutate(variable = rownames(.)) %>% 
+  as_data_frame()
+
+hake_fit_index <- hake_summary %>% 
+  filter(str_detect(variable,'index')) %>% 
+  mutate(year = str_replace_all(variable,'\\D','') %>% as.numeric()) %>% 
+  mutate(variable = str_replace_all(variable,"(\\d)|(\\[)|(\\])","")) %>% 
+  select(mean, variable, year) %>% 
+  spread(variable, mean) %>% 
+  mutate(true_index = hake$index)
+
+
+biomass <- hake_summary %>% 
+  filter(str_detect(variable,'biomass')) %>% 
+  mutate(year = str_replace_all(variable,'\\D','') %>% as.numeric()) %>% mutate(year = hake$year)
+
+b_and_c <- biomass %>% 
+  ggplot() + 
+  geom_line(aes(year, mean), linetype = 2, color = 'red') + 
+  geom_ribbon(aes(year, ymin = `2.5%`, ymax = `97.5%`), alpha = 0.25, fill = 'red') + 
+  geom_line(data = hake, aes(year, catch))
+
+
+fit_plot <- hake_fit_index %>% 
+  select(year, true_index,index_hat) %>% 
+  ggplot() + 
+  geom_line(aes(year, index_hat)) + 
+  geom_point(aes(year, true_index))
+
+d <- b_and_c + fit_plot + plot_layout(ncol = 2, nrow = 1)
+
+ d
+
+
+```
+
+```{r}
+
+hake_pop_devs <- hake_summary %>% 
+  filter(str_detect(variable,'log_pop_devs')) %>% 
+  mutate(year = str_replace_all(variable,'\\D','') %>% as.numeric()) %>% 
+  mutate(variable = str_replace_all(variable,"(\\d)|(\\[)|(\\])","")) %>% 
+  select(mean, variable, year) %>% 
+  spread(variable, mean) %>% 
+  mutate(true_index = hake$index)
+
+hake_pop_devs %>% 
+  ggplot(aes(year, log_pop_devs)) + 
+  geom_line()
+
+```
+
+```{r}
+
+hake_pop_devs <- hake_summary %>% 
+  filter(str_detect(variable,'biomass')) %>% 
+  mutate(year = str_replace_all(variable,'\\D','') %>% as.numeric()) %>% 
+  mutate(variable = str_replace_all(variable,"(\\d)|(\\[)|(\\])","")) %>% 
+  select(mean, variable, year) %>% 
+  spread(variable, mean) %>% 
+  mutate(true_index = hake$index)
+
+hake_pop_devs %>% 
+  ggplot(aes(year, biomass)) + 
+  geom_line()
+
+```
+
+```{r}
+
+hake_pop_devs <- hake_summary %>% 
+  filter(str_detect(variable,'population')) %>% 
+  mutate(year = str_replace_all(variable,'\\D','') %>% as.numeric()) %>% 
+  mutate(variable = str_replace_all(variable,"(\\d)|(\\[)|(\\])","")) %>% 
+  select(mean, variable, year) %>% 
+  spread(variable, mean) %>% 
+  mutate(true_index = hake$index)
+
+hake_pop_devs %>% 
+  ggplot(aes(year, population)) + 
+  geom_line()
+
+```
+
+
+# Another Example?
+
+
+# `rstanarm`/`TMB`
+
+
