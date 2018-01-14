@@ -1,5 +1,4 @@
-# Learn-Stan
-A practical introduction to modeling in Stan
+# A practical introduction to modeling in Stan
 
 The goal of this document is to get users comfortable writing, diagnosing, and using Stan models. 
 
