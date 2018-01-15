@@ -22,7 +22,7 @@ Please also make sure that
 
 Second, please go to Stan's instructions on installing Stan for use with R, which you can find [here](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started)
 
-Installing Stan can be a bit complicated on some machines, especially if you haven't run programs that require a C++ compiler before (if that sentance doesn't make sense to you, this means you), so **PLEASE DON'T WAIT UNTIL THE MORNING OF THE WORKSHOP TO TRY AND INSTALL STAN**. Please try to install a few days beforehand, and let me know if you can't get it to work AND I'll try to help. 
+Installing Stan can be a bit complicated on some machines, especially if you haven't run programs that require a C++ compiler before (if that sentance doesn't make sense to you, this means you), so **PLEASE DON'T WAIT UNTIL THE MORNING OF THE WORKSHOP TO TRY AND INSTALL STAN**. Try to install it a few days beforehand, and if you can't get it to work let me know and I'll try to help. 
 
 To check that it works, once you've succesfully done all the other steps please open R and run the code below. If it works, you're good to go!
 
