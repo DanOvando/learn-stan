@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, cache = F)
 ```{r}
 library(rstan)
 library(rstanarm)
+library(loo)
 library(tidyverse)
 library(patchwork)
 
@@ -202,12 +203,12 @@ Let's look at one stock in particular
 
 
 ```{r}
+sal_data <- sr_data %>% 
+  filter(stockid == 'PSALMAKPSWUD') %>% 
+  select(stocklong, year, ssb, r) %>% 
+  na.omit()
 
-mack_data <- sr_data %>% 
-  filter(stockid == 'CMACKTSST') %>% 
-  select(stocklong, year, ssb, r)
-
-mack_data %>% 
+sal_data %>% 
   ggplot(aes(ssb, r)) + 
   geom_point()
 
@@ -264,18 +265,22 @@ total_iterations <- 2000
 
 max_treedepth <-  10
 
-data <- list(n = nrow(mack_data),
-               r = mack_data$r,
-             ssb = mack_data$ssb,
-               max_r = max(mack_data$r)
+n_chains <-  4
+
+n_cores <- 1
+
+data <- list(n = nrow(sal_data),
+               r = sal_data$r,
+             ssb = sal_data$ssb,
+               max_r = max(sal_data$r)
              )
 
-mack_fit <- stan(file = here::here("scripts","bh_model.stan"),
+bh_fit <- stan(file = here::here("scripts","bh_model.stan"),
                  data = data,
-                 chains = 4,
+                 chains = n_chains,
                  warmup = warmups,
                  iter = total_iterations,
-                 cores = 1,
+                 cores = n_cores,
                  refresh = 250,
                  init = list(list(h = 0.4, alpha = 2 * data$max_r),
                              list(h = 0.21, alpha = 3 * data$max_r),
@@ -298,7 +303,7 @@ We'll walk through this together, but if you're reading this on your own, I reco
 
 ```{r, eval = F}
 
-rstanarm::launch_shinystan(mack_fit)
+rstanarm::launch_shinystan(bh_fit)
 
 ```
 
@@ -309,7 +314,7 @@ Calling `stan` creates an object of class `stanfit`
 
 ```{r}
 
-class(mack_fit)
+class(bh_fit)
 
 ```
 
@@ -317,14 +322,14 @@ class(mack_fit)
 
 ```{r}
 
-summary(mack_fit)
+summary(bh_fit)
 
 ```
 
 The plot command is a great way to get a first glance at your fits
 
 ```{r}
-plot(mack_fit)
+plot(bh_fit)
 ```
 
 Before we look at using our model though, let's take a look at a few diagnostics to try to evaluate our model fit. **DISCLAIMER** You should put a lot more thought and effort in model model dianogsis in real cases, this is just an example of accessing some of the starting points in this process. 
@@ -336,7 +341,7 @@ The first thing we can check is for the presence of "divergent" transitions (see
 
 ```{r}
 
-rstan::check_divergences(mack_fit)
+rstan::check_divergences(bh_fit)
 
 ```
 
@@ -345,8 +350,8 @@ We can also look manually at these diagnostics using the output of `rstan::get_s
 ```{r extract-diagnostics}
 
 
-mack_diagnostics <- rstan::get_sampler_params(mack_fit) %>% 
-  set_names(1:4) %>% 
+mack_diagnostics <- rstan::get_sampler_params(bh_fit) %>% 
+  set_names(1:n_chains) %>% 
    map_df(as_data_frame,.id = 'chain') %>% 
   group_by(chain) %>% 
   mutate(iteration = 1:length(chain)) %>% 
@@ -407,13 +412,13 @@ While these are extreme examples, this also gives an idea of a first step at fix
 Now that we've taken a look at the highest-level red flags (divergences and treedepth) and satisfied ourselves that we're in the clear, we can start to diagnose individual parameter estimates. There are a lot of ways to look at the these, the most useful starting point in my opinion is to extract summary statistics on each model parameter. You can do that by `summary(my_model)$summary`. `summary` on it's own prints out summaries of each parameter, the `$summary` part allows you to access and store the data behind the printed statistics. 
 
 ```{r}
- mack_summary <- summary(mack_fit)$summary %>% 
+ bh_summary <- summary(bh_fit)$summary %>% 
   as.data.frame() %>% 
   mutate(variable = rownames(.)) %>% 
   select(variable, everything()) %>% 
   as_data_frame()
 
-mack_summary
+bh_summary
 ```
 
 There are two really important diagnostic statistics hidden in this summary:
@@ -429,7 +434,7 @@ So, the mack `n_eff` is the sum of the sampling iterations across all chains. In
 
 ```{r}
 
-mack_summary %>% 
+bh_summary %>% 
   ggplot(aes(n_eff)) + 
   geom_histogram() + 
   geom_vline(aes(xintercept = 4000), color = 'red')
@@ -440,7 +445,7 @@ Most of our parameters have a fairly high `n_eff`, though we see a few are somew
 
 ```{r}
 
-mack_summary %>% 
+bh_summary %>% 
   ggplot(aes(Rhat)) + 
   geom_histogram() + 
   geom_vline(aes(xintercept = 1.1), color = 'red')
@@ -458,7 +463,7 @@ Remember that we had three parameters in our model, steepness `h`, max recruits 
 
 ```{r}
 
-mack_summary %>% 
+bh_summary %>% 
   filter(variable %in% c('h','alpha','sigma')) %>% 
   ggplot() + 
   geom_linerange(aes(variable, ymin = `2.5%`,ymax = `97.5%`)) + 
@@ -477,15 +482,15 @@ Our recruitment estiamtes were stored in the `rhat` object
 ```{r}
 
 
-rhat <- mack_summary %>% 
+rhat <- bh_summary %>% 
   filter(str_detect(variable,'rhat') & !str_detect(variable,'log') & !str_detect(variable,'pp'))
 
-mack_data <- mack_data %>% 
+sal_data <- sal_data %>% 
   mutate(mean_rhat = rhat$mean,
          lower = rhat$`2.5%`,
          upper = rhat$`97.5%`)
 
-mack_data %>% 
+sal_data %>% 
   ggplot() + 
   geom_point(aes(ssb, r)) + 
   geom_line(aes(ssb, mean_rhat)) + 
@@ -500,13 +505,13 @@ If we're sticklers for the truely raw data, we can also look at the parameter va
 
 
 ```{r}
-mack_mcmc <- mack_fit %>% 
+bh_mcmc <- bh_fit %>% 
   rstan::extract()
 
-mack_pars <- mack_mcmc[ c('h','alpha','sigma')] %>% 
+bh_pars <- bh_mcmc[ c('h','alpha','sigma')] %>% 
   map_df(as_data_frame, .id = 'variable')
 
-mack_pars %>% 
+bh_pars %>% 
   ggplot(aes(value, fill = variable)) + 
   geom_density() + 
   facet_wrap(~variable, scales = 'free') + 
@@ -533,13 +538,13 @@ So, using our draws from the posterior of h, $\alpha$, $\sigma$ and our observed
 ```{r}
 
 
-pp_rhat <- mack_mcmc[ 'pp_rhat'] %>% 
+pp_rhat <- bh_mcmc[ 'pp_rhat'] %>% 
   map_df(as_data_frame, .id = 'variable') %>% 
   gather(observation,value, -variable)
 
 ggplot() + 
   geom_density(data = pp_rhat, aes(value,fill = 'Posterior Predictive'), alpha = 0.5) + 
-  geom_density(data = mack_data, aes(r, fill = 'Observed'), alpha = 0.5)
+  geom_density(data = sal_data, aes(r, fill = 'Observed'), alpha = 0.5)
 
 ```
 
@@ -549,20 +554,20 @@ We can also use the posterior predictive to use our model to make predictions. S
 
 ```{r}
 
-rhat <- mack_summary %>% 
+rhat <- bh_summary %>% 
   filter(str_detect(variable,'rhat') & !str_detect(variable,'log') & !str_detect(variable,'pp'))
 
-pp_rhat <- mack_summary %>% 
+pp_rhat <- bh_summary %>% 
   filter(str_detect(variable,'pp_rhat')) %>% 
-  mutate(ssb = mack_data$ssb)
+  mutate(ssb = sal_data$ssb)
 
 
-mack_data <- mack_data %>% 
+sal_data <- sal_data %>% 
   mutate(mean_rhat = rhat$mean,
          lower = rhat$`2.5%`,
          upper = rhat$`97.5%`)
 
-mack_data %>% 
+sal_data %>% 
   ggplot() + 
   geom_point(aes(ssb, r)) + 
   geom_line(aes(ssb, mean_rhat)) + 
@@ -599,6 +604,248 @@ So far, we've been focused on diagnosing our model to make sure that it has in f
 
 Our next step should be to test these assumptions by constructin alternative models and comparing them. Luckily, `stan` has a number of tools available to help us with model comparison. 
 
+The Beverton-Holt model assumes a "compensatory" nature of density dependence. A simple ecological example would be habitat filling: if there is a finite amount of available habitat for recruits, once those spots fill up even if you put more and more eggs into the system the total number of recruits will stay the same. The Ricker model is a bit more flexible, and allows for "depensatory" dynamics, which basically means that the SR curve can start to bend back down. An example of this would be a canabalistic process, where once adult density (SSB) gets high enough, they start to prety on recruits and actually drive recruitment back down. 
+
+We can use `Stan` to test the relative performance of the BH vs Ricker models in explaining the observed patterns of SSB and recruitmenbt. 
+
+Steepness isn't an applicable parameter in the Ricker model, so we will use the form fmor @Dorn2002
+
+$$R = \alpha * SSB * exp(-\beta*SSB)$$
+
+
+```{r}
+
+rzero <-  10
+
+szero <- 9
+
+h = 0.9
+
+beta <- log(5 * h) / (0.8 * szero)
+
+ssb <- 0:500
+
+alpha <- log(rzero / szero) + (beta * szero)
+
+recruits <- (ssb * exp(alpha - beta * ssb))
+
+data_frame(ssb = ssb, recruits = recruits) %>% 
+  ggplot(aes(ssb, recruits)) +
+  geom_point()
+
+
+
+```
+
+
+
+```{r ricker}
+
+warmups <- 2000
+
+total_iterations <- 4000
+
+max_treedepth <-  10
+
+data <- list(
+  n = nrow(sal_data),
+  r = sal_data$r,
+  ssb = sal_data$ssb,
+  max_r = max(sal_data$r),
+  bh = 0,
+  n_sr_params = 2,
+  max_h = 2,
+  rec_par_mean = c(2 * max(sal_data$r),  0.5 * max(sal_data$ssb)),
+  rec_par_cv = c(0.5, 0.5),
+  fuck = array(2.367, dim = 1),
+  wtf = 1
+  )
+
+ricker_fit <- stan(file = here::here("scripts","generic_stock_recruit.stan"),
+                 data = data,
+                 chains = 4,
+                 warmup = warmups,
+                 iter = total_iterations,
+                 cores = 1,
+                 refresh = 250,
+                 init = list(list(h = 0.4, rec_pars = c(2 * data$max_r, 4 * max(data$ssb))),
+                             list(h = 0.21, rec_pars = c(1 * data$max_r, 10 *  max(data$ssb))),
+                             list(h = 0.8, rec_pars = c(3 * data$max_r, 6 *  max(data$ssb))),
+                             list(h = 0.3, rec_pars = c(4 * data$max_r, 5 *  max(data$ssb)))),
+                 control = list(max_treedepth = max_treedepth,
+                                adapt_delta = 0.95))
+
+
+```
+
+
+You'll notice below that I'm doing some slightly odd things with arrays in my data call. This is because `Stan` is much more finicky (or exact if you want to think of it that way) about data types. Part of the appeal of `R` from a data wrangling perspective is that it is **REALLY** forgiving about data types. R is perfectly happy to construct a vector of length 1, or a 1 by 1 matrix, and these things will more or less behave in the same way (don't hold me to that). `Stan` though is a bit pickier. If `Stan` sees a piece of data that is supposed to be a vector, and sees that it is only length 1, it says "nope, that's a scalar", and bad things happen. In this case, I have specified `rec_par_mean` and `rec_par_cv` to be real vectors in my `DATA` block, of length `n_sr_params`. But, when `n_sr_params` is 1, and `Stan` sees that `rec_par_mean` is just one number, it says OK, this is a scalar, and a scalar can't have a length, so what's this dimensions thing doing here? We get arround that by specifying that `rec_par_mean` is an array with 1 dimension (see [here](http://mc-stan.org/rstan/reference/stan.html), down above the references). 
+
+```{r bh2}
+
+warmups <- 2000
+
+total_iterations <- 4000
+
+max_treedepth <-  10
+
+data <- list(
+  n = nrow(sal_data),
+  r = sal_data$r,
+  ssb = sal_data$ssb,
+  max_r = max(sal_data$r),
+  bh = 1,
+  n_sr_params = 1,
+  max_h = 1,
+  rec_par_mean = array(2 * max(sal_data$r), dim = 1),
+  rec_par_cv = array(0.5, dim = 1)
+  )
+
+bh_fit <- stan(file = here::here("scripts","generic_stock_recruit.stan"),
+                 data = data,
+                 chains = 4,
+                 warmup = warmups,
+                 iter = total_iterations,
+                 cores = 1,
+                 refresh = 250,
+                 init = list(list(h = 0.4, rec_pars = as.array(2 * data$max_r)),
+                             list(h = 0.21, rec_pars = as.array(1 * data$max_r)),
+                             list(h = 0.8, rec_pars = as.array(3 * data$max_r)),
+                             list(h = 0.3, rec_pars = as.array(4 * data$max_r))),
+                 control = list(max_treedepth = max_treedepth,
+                                adapt_delta = 0.95))
+
+
+
+
+
+```
+
+
+```{r}
+ bh_summary <- summary(bh_fit)$summary %>% 
+  as.data.frame() %>% 
+  mutate(variable = rownames(.)) %>% 
+  select(variable, everything()) %>% 
+  as_data_frame()
+
+
+ ricker_summary <- summary(ricker_fit)$summary %>% 
+  as.data.frame() %>% 
+  mutate(variable = rownames(.)) %>% 
+  select(variable, everything()) %>% 
+  as_data_frame()
+ 
+ricker_rhat <- ricker_summary %>% 
+  filter(str_detect(variable,'rhat') & !str_detect(variable,'log') & !str_detect(variable,'pp')) %>% mutate(model = 'ricker',
+                                                                                                            ssb = sal_data$ssb)
+
+
+bh_rhat <- bh_summary %>% 
+  filter(str_detect(variable,'rhat') & !str_detect(variable,'log') & !str_detect(variable,'pp')) %>% 
+  mutate(model = 'bh',
+         ssb = sal_data$ssb)
+
+rhat <- ricker_rhat %>% 
+  bind_rows(bh_rhat)
+
+  rhat %>% 
+  ggplot() + 
+  geom_point(data = sal_data,aes(ssb, r)) + 
+  geom_line(aes(ssb, mean, color = model)) + 
+  geom_ribbon(aes(ssb, ymin = `2.5%`, ymax = `97.5%`, fill = model),alpha = 0.25)
+```
+
+```{r}
+
+wtf <- ricker_summary %>% 
+  slice(1:4) %>% 
+  select(variable, mean) %>% 
+  spread(variable, mean)
+
+h <- wtf$h
+
+wtf$`rec_pars[2]` <- wtf$`rec_pars[2]` * 0.1
+
+ beta = log(5 * wtf$h) / (0.8 * wtf$`rec_pars[2]`);
+
+      alpha = log(wtf$`rec_pars[1]` / wtf$`rec_pars[2]`) + 0.8 * beta * wtf$`rec_pars[2]`;
+
+      rhat = sal_data$ssb * exp(alpha - beta * sal_data$ssb) 
+ 
+ plot(sal_data$ssb, rhat)
+
+```
+
+
+We now have two alternative models, a Beverton-Holt and a Ricker SR relationship. 
+
+As a first step we should of course conduct all the same convergenve tests for the Ricker model that we conducted for the BH model, and we can base some judegement based on those results. For example, if the posterior predictive test look much better for one model that might give us some indication that the data at least support one model over another. 
+
+We can also use the `loo` package to try and quantitatively compare the two models. `loo` stands for leave-one-out, and the `loo` function provides a powerful interface for performing leave-one-out cross validation for Bayesian models. Basically, it tests the out-of-sample predictive accuracy of each of the models. You can think of it as an improvement over AIC/DIC for model comparison (see `?"loo-package"`). 
+
+There are a few ways to use `loo`, but the simplest requires a bit of prep work. `loo` needs to evaluate the likelihood as a function of leaving out data. So, it needs to have access to the pure likelihood. You can either write a function to do this, which we won't cover here (see `?loo::loo`), or you can go back in your model and store the log-likelihood in the `generated quantities` block
+
+
+```{stan, eval = F,  output.var="ex1"}
+
+  vector[n] log_likelihood;
+
+  for (i in 1:n) {
+
+   parameter_name[i] = normal_lpdf(log_r[i] | log_rhat[i] - 0.5 * sigma^2, sigma);
+    
+  }
+
+
+```
+
+Once we've done this, we can extract the log-likelihood using `loo::extract_log_lik`. 
+
+`loo::extract_log_lik()` has an option `parameter_name` that defaults to `parameter_name = "log_lik"`, but for the sake of this example we've named our log-likelood object in the `stanfit` object `parameter_name`
+
+
+```{r}
+
+log_lik_ricker <- extract_log_lik(ricker_fit, parameter_name = "log_likelihood")
+
+```
+
+Once we have this, we can pass the log-likelihood matrix to the `loo` function to get our diagnostics. 
+
+
+```{r}
+
+ricker_loo <- loo::loo(log_lik_ricker)
+```
+
+
+On their own, these values aren't too informative for us (in the same way that a lone AIC value doesn't really tell you much). 
+
+But, we can now repeat this process with out BH model, and use `loo` to compare them. 
+
+
+```{r}
+
+log_lik_bh <- extract_log_lik(bh_fit, parameter_name = "log_likelihood")
+
+bh_loo <- loo::loo(log_lik_bh)
+
+
+```
+
+THe output of compare is a big confusing, but basically, if `elpd_diff` is positive, that means that according to `loo`, the second model is prefered. If it's negative, the first model is preferred. So, in this case, per the `loo` criteria, there is a bit more support for the Beverton-Holt model, at least as we parameterized it here. But we can also see that `elpd_diff` is on about the same scale as the standard error `se`, giving some indication that there isn't a big difference between the models (if for example `elpd_diff` had been `-2000`, much bigger than the `se` of `0.5`, this would indicate more support for the difference). 
+
+If you want to compare more than two models, you just pass more `loo` objects to compare!
+
+```{r}
+compare(bh_loo, ricker_loo, ricker_loo)
+
+```
+
+Compare conveniently orders the matrix in descending order of model performance. 
+
+And just like that, we have a solid sketch of going from raw data, to model fits, to model comparison, using Stan and R. There is clearly a lot more work that would have to go into doing this analysis properly (e.g. we haven't done any testing of the effects of our choices for our prior distributions), but the tools we've gone over here should serve as a useful template to build off of for more complete analysis. 
 
 # CPUE Standardization
 
