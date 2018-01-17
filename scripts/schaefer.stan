@@ -106,7 +106,7 @@ model{
 
   log_index ~ normal(log_index_hat, sigma_observation);
 
-  // log_k ~ uniform(log(1000),log(4000));
+  log_k ~ uniform(log(1000),log(4000));
 
   log_r ~ normal(log(.3), 1);
 

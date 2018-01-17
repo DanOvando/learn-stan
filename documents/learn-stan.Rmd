@@ -50,42 +50,47 @@ An MCMC works more or less like this
 
 4. Accept or reject the new parameters by some function proportional to how much the new parameters improve the model fit.
 
-5. Repeat the process a lot. 
+5. Repeat the process many many times 
 
 This simple algorithm can be shown to always converge on an approximation of the posterior probability distribution of the model eventually. The challenge then is mostly in designing functions for selecting and accepting/rejecting new values that will help the algorithm converge in your lifetime. 
 
 That's where Stan comes in. If you write the model, Stan has a number of built in algorithms for helping you use MCMC to fit and diagnose that model quickly and efficiently. It's beyond the scope of this article or my ability to explain perfectly how it does this, but @Monahan2016 provides a really great summary of the mathematics behind Stan's algorithms, that I will now butcher. 
 
 
-## Divergence
+Stan makes use of two main tools to efficiently solve Bayesian problems:  Hamiltonian Monte Carlo (HMC) and the no-U-turn sampler (NUTS). A simple MCMC might choose a new parameter value by drawing from a multivariate normal distribution centered on the last parameter value, with some tuned or supplied covariance matrix. This means that each new parameter value is likely to be highly correlated with the last paramete value, requiring you to draw a large number of samples and then "thin" the samples to create independent draws from the posterior. 
 
-## Treedepth
+HMC and NUTS works a little differently. The details are very complicated, and I recommend reading more on this if you're interested (see @Monnahan2016), but the good news is someone else worked out all the details so that you can use it! But it's good to have a rough sense of what's going on. 
 
-## Example
+Think of the posterior probability of your model like a small planet with peaks and valleys. The of HMC/NUTS is a an astronaut that lands on this planet, and the astronauts goal is to find the highest peaks in the landscape. But, there's a catch. The astronaut is blindfolded, but has a sensor that tells her three things: her elevation, her distance from her starting point, and her "energy". Her energy is the sum of her potential and kinetic energy, and you can overlay isoclines of energy over this surface. So, she could just systematically walk across the landscape, taking an elevation measurement at each and every point. This would work, but would take forever if the landscape is at all big. So instead, she does something like this. She starts traveling in a random direction, with the only rule being she has to keep track of her energy monitor and more or less stay on the same energy isocline. She can then decide to take tiny little steps, or huge gigantic leaps (remember, it's Mars so the gravity is much lower). If she takes giant leaps, she covers the ground really quickly, but can also really easily deviate off of her energy isocline. If she takes tiny steps, it's easy to stay on the energy isocline, but takes forever to travel very far. She picks a step size, and starts traveling, keeping track of her distance from her initial starting point, only stopping when her distance from her initial starting point starts to decrease (a U-turn, i.e. when the path she's on doubles back on itself), or when she deviates off of her energy isocline, or when she has traveled as far as she's willing to go along any one isocline. Once she's stopped, she looks at her altimeter. If she's higher than she was when she started, she marks that spot as a possible peak. If she's lower than where she started, she marks that spot as part of a peak with probability proportional to how much lower she is than her starting point. If she decides to mark that spot, she then starts a new path from that point. If she doesn't mark that spot, she returns to her original position, marks that original position again, and tries a new path. 
 
+This leaves really one key decision for the astronaut to make: how big should her stepsize be? She makes this decision by tallying the average rate at which she accepts a new position, and she knows from some smart people that an 80% acceptance rate is reflective of a good balance of of taking big enough steps to be efficient but not so large that you miss important features of the landscape. So, she keeps trying new step sizes until she hits that target acceptance rate. 
 
-```{r}
+There's a lot in here then, but to translate this back into practical terms, this means that for the most part, the only key decision that you, the analyst, needs to make in implementing the HMC/NUTS algorithm is what your target acceptance rate is. Stan then does the work for you of finding the right step size to achieve that target acceptance rate during it's "warmup" period. Once it's done with that, it enters the "sampling period", holding that same step size constant.
 
-```
+We'll get into the implementation details of this later, but that gives a general idea of what's happening when you call Stan. This has a few really nice features. It's more efficient than say an MCMC, and the HMC process means that you don't have to thin anymore, since the HMC itself should more or less pick values that are largely independent of the last value (though this isn't always true, and sometimes some thinning is needed). This saves you that annoying step in other Monte-Carlo based approached of having to run a boatload of samples and then "waste" them by thinning them down (though HMC still discards a lot of steps in the process). But, it makes it much easier to set a target number of samples from the posterior. In addition, programs such as BUGs like to try and take advantage of Gibbs sampling to speed things up, which requires conjugate priors, giving you an incentive to select conjugate priors for your model. Unfortunately, nature is rarely so kind; we should pick distributions based off reasonable hypotheses about the state of the world, not computationel efficienty. Stan (i.e HMC) doesn't care at all whether you are using conjugate priors, encouraging you to find the right model, not the most mathematically convenient model. 
 
+So, this all means that you can focus on writing your model, and leave the complicated tuning and running of HMC to NUTS. 
 
+## A Note on Divergences
 
-....
+HMC uses a process called the "leapfrog integrator" to draw a sketch of the posterior probability surface, since for all but the most trivial model cases there is no analytical solution. The nice thing is, failures in this integrator are identified by "divergences", which basically mean that the sampler has deviated from that enery isocline we talked about before. So, the model is going along at say an average energy of 10, and then all of a sudden goes to 20, 40, 100, etc. This tells NUTS that something has gone wrong, and it abandons ship. This can be a sign of two things. Either you just need to decrease the step size (which you do by increasing the target acceptance rate), or it can be a sign that there's a problem in the design of your model. In the later case, this can sometimes be solved by just reparametrizing your model (which we'll touch on later), but in other cases can be a sign of a fundamental problem in your model (e.g. a population model that goes negative and as a result produces Inf or NA values in your posterior probability). 
 
-# R and STAN workflow
+Understanding and dealing with divergences is a bit of an art, but it's important to note that Stan will warn you if divergences pop up, and it's something you have to look into. Divergences mean that the model didn't correctly survey the posterior probability and so your results may by suspect. 
 
-Now that you've hopefully developed a general idae of what Stan is and why you might like to use it, we're going to dig into actual using it. 
+# Filling your Stan Toolbox
 
-This is just generally good practice: before you start frantically coding you should sit down and write out your model. @Hobbs provides a great introduction on how to do this if you're not familiar with the process. 
+A few general notes on Stan syntax are important to note though. 
 
-You can certainly do your entire analysis in Stan by itself. However, every language has it's purpose, and the purpose of Stan is not fast and easy data manipulation. The good news is that Stan has clearnly interfaces with other programming languages like R and Python, allowing you to do a lot of the complex data manipulation in languages better suited to those tasks. You can then pass your processed data to Stan to do the model fitting, and then analyze your results back in say R. 
-
-The most useful way to write a Stan model is in its own file, with the extension `.stan` (there are a few other ways but we're not going to cover them). 
-
+Stan is based off of C++, but is written differently. It has a bunch of features that make it a bit easier to deal with than C++, but also means that unlike other frameworks like TMB, you can't just google the C++ solution to any given problem. 
 
 A Stan model in a .stan file is broken into a number of "blocks", each of which define a particular part of the model. There are several different possible blocks, but to start with we're going to work with the three that every model has to have: `data`, `parameters`, and `model`
 
 ```{stan, eval = F, output.var="ex1"}
+/* 
+You can do long blocks of comments
+like this
+*/
+
 
 data{
 // load in data
@@ -103,6 +108,295 @@ model{
 
 
 ```
+
+You need to preallocate space for any variable that you include in your model, by declaring its type and its size. These declarations need to all happen at the start of each block. Stan uses what is called "Strong typing", meaning basically that it is very strict in terms of what you can do to different kinds of data, and if you try and treat say an array of real numbers like a vector of real numbers it will blow up. 
+
+So, to start with our data section. Suppose we have *N* observations of *Y* data, where N is an integer (the number of observations), and Y is a vector of real numbers. We would declare those like 
+
+
+```{stan, eval = F, output.var="dataex"}
+
+data{
+
+int N; // the number of observations
+
+vector[N] Y; //
+
+}
+
+```
+
+This tells Stan that we have an integet object N, and we have a vector Y of length N. 
+
+Notice that like C++, every statement needs to be closed with a semi-colon `;`, and that comments are marked by `\\`. 
+
+You can also declare arrays using a very confusing different in structure
+
+```{stan, eval = F, output.var="dataex"}
+
+data{
+
+int N; // the number of observations
+
+vector[N] Y; //
+
+real X[N];
+
+}
+
+```
+
+In this case, Y is a vector of size [N,1] (Stan treates Vectors as a matrix based data type)
+
+and X is a an array of 10 1 dimensional objects. That is a pretty confusing distinction, the main difference being that 
+
+  - vectors allow vector/matrix algebra. You can't do this with arrays
+  
+  - arrays allow for integer storage. So, if for example you want to pass a bunch of
+  indicies showing which columns correspond to different subgroups, you need to use `int index[n];` would prodice an array of length n each storing one integer
+  
+To give a few illustrations of this
+
+```{stan, eval = F, output.var="dataex"}
+
+real x[10];
+
+real y[10];
+
+real z[10];
+
+z = x * y
+
+```
+
+Would not work
+  
+
+```{stan, eval = F, output.var="dataex"}
+
+vector[10] x;
+
+vector[10] y;
+
+vector[10] z;
+
+z = x * y
+
+```
+
+Also does not work! Why not???
+
+By default, Stan goes with matrix multiplication, and x and y are both [10,1] matrices, which can't be matrix multiplied together. You can get Stan to do element-wise operations by using .* (or ./ for division). 
+
+So this would work
+
+```{stan, eval = F, output.var="dataex"}
+
+vector[10] x;
+
+vector[10] y;
+
+vector[10] z;
+
+z = x .* y
+
+```
+
+
+One really nice thing about Stan, as opposed to straight up C++, is that it allows for pretty easy indexing. 
+
+This works
+
+```{stan, eval = F, output.var="dataex"}
+
+vector[10] x;
+
+vector[10] y;
+
+vector[5] z;
+
+z = x[1:5] .* y[1:5];
+
+```
+
+As does this
+
+
+```{stan, eval = F, output.var="dataex"}
+
+vector[10] x;
+
+vector[10] y;
+
+vector[5] z;
+
+z = x[1:5] .* y[1:5];
+
+```
+
+As does this
+
+```{stan, eval = F, output.var="dataex"}
+
+vector[10] x;
+
+vector[10] y;
+
+int i[5];
+
+vector[5] z;
+
+i = {1,2,3,4,7}
+
+z = x[i] .* y[i];
+
+```
+
+
+If things seem like they should be working and they're not, 9 times out of 10 it's a problem with these kinds of things (e.g. trying to multiply an array times a vector). One nice feature of running models through Rstudio is if you open up your `.stan` script in Rstudio, inside the IDE there's a little "check" button in the righthand cornder of the script that will catch a lot of that stuff. It won't tell you where the problem is, but it will let you know that your .stan file won't run as written. 
+
+Ther are a ton of other details out there in terms of structuring and manipulating data, and you can see chapters 3 and 4 of the official Stan documentation for very detailed description, but these examples should get you started with the kinds of operations most of us do. 
+
+One other feature worth calling out for a moment is Stan's ability to set bounds on just about anything. For example, suppose you have data *x* that you know can only be positive. You can let Stan know this by `<lower = 0>`
+
+
+```{stan, eval = F, output.var="dataex"}
+
+data{
+
+int n; // the number of observations
+
+vector[n] y; //
+
+vector<lower = 0>[n] x;
+
+}
+
+
+```
+
+This lets stan know that X is defined on the range `[0, Inf]`
+
+If x has a positive constraint, say 100, you guessed it `<lower = 0, upper = 100>`
+
+When declared in the `data` block this isn't all that useful, beside causing Stan to crash if you accidentally pass data in violation of the constraints (which can be handy as a check that you haven't messed something up in you R script that prepares the data). 
+
+Where the bounds get really useful is in the `parameters` block. For example, suppose we are estimating a standard deviation $\sigma$. We know that $\sigma$ has to be positive. So, we could do something like estimate $log(\sigma)$ and then use $exp(log(\sigma))$ in our model. 
+
+Or, we can just declare the parameter $\sigma$ to have a lower bound of zero
+
+
+```{stan, eval = F, output.var="dataex"}
+
+parameters{
+
+  real<lower = 0> sigma;
+
+}
+
+```
+
+By doing this, Stan knows not to look for negative values of $\sigma$, and will even allow us do set normal priors on sigma 
+
+```{stan, eval = F, output.var="dataex"}
+
+model{
+  
+  sigma ~ normal(0, 2);
+  
+}
+```
+
+This is equivalent of saying that our prior on sigma is half normal, with standard deviation 2. 
+The above example may have been a bit confusing since we haven't gotten to the `model` block yet. 
+
+The `model` block is where we actually define our model (in terms of likelihoods and priors). 
+
+There are a few ways to do this, but for now we'll stick with generally preferred syntax of 
+
+`some_thing ~ some_distribution(distribution_parameters)`
+
+So in the above example, we are saying that parameter $\sigma$ come from a normal distribution with mean 0 and standard deviation 2. Stan has support for all kinds of different distributions, and you should see the documentation for descriptions and notes on the meaning of different distribution parameters. 
+
+Lastly, we should touch on `for`, `while`, and `if` statements. These all work more or less the same as they do in R, thankfully. 
+
+
+
+```{stan, eval = F, output.var="dataex"}
+
+model{
+
+real test[10];
+
+int n;
+
+int N;
+
+N = 10;
+
+for (i in 1:10){
+
+print(test[i])
+
+}
+
+n = 1;
+
+while (n <= N) {
+  
+  n = n + 1; 
+  
+  print(n)
+
+}
+
+if (n == N){
+
+print("hooray")
+}
+
+}
+
+```
+
+
+Notice the use of `print` there. `print` is a great way to see what's going on inside your code once you've got it at least syntactically correct (meaning it will compile). 
+
+So, that's a small look at the key features of writing Stan code. There's a ton more out there, but those are the basic tools for most coding. Feel free to play around with the `scratch.stan` file to test out different behaviors. 
+
+
+```{r}
+
+beta <- 0.2
+
+sigma <- 0.5
+
+ x <- -1:200
+
+data <- list(y = x * beta + rnorm(length(x), 0, sigma), n = length(x), x = x,
+             z = x, g = x)
+
+plot(x,data$y)
+
+scratch <- stan(file = here::here('scripts', 'scratch.stan'),
+                iter = 2000, 
+                warmup = 1000,
+                data = data)
+
+plot(scratch)
+```
+
+
+# Example Model: Stock Recruitment Relationships
+
+Now that you've hopefully developed a general idae of what Stan is and why you might like to use it, we're going to dig into actual using it. 
+
+This is just generally good practice: before you start frantically coding you should sit down and write out your model. @Hobbs provides a great introduction on how to do this if you're not familiar with the process. 
+
+You can certainly do your entire analysis in Stan by itself. However, every language has it's purpose, and the purpose of Stan is not fast and easy data manipulation. The good news is that Stan has clearnly interfaces with other programming languages like R and Python, allowing you to do a lot of the complex data manipulation in languages better suited to those tasks. You can then pass your processed data to Stan to do the model fitting, and then analyze your results back in say R. 
+
+The most useful way to write a Stan model is in its own file, with the extension `.stan` (there are a few other ways but we're not going to cover them). 
+
 
 We'll learn the basics of Stan by working trying to fill in this model one step at a time, using the fitting of a Beverton-Holt stock-recruitment relationship as an example. 
 
@@ -194,7 +488,7 @@ sr_plots <- sr_data %>%
   mutate(sr_plot = map(data, ~ ggplot(.x,aes(ssb,r)) + 
   geom_point()))
 
-trelliscopejs::trelliscope(sr_plots, name = 'sr_plots', panel_col = 'sr_plot', self_contained = TRUE)
+# trelliscopejs::trelliscope(sr_plots, name = 'sr_plots', panel_col = 'sr_plot', self_contained = TRUE)
 
 ```
 
@@ -231,12 +525,11 @@ In english, this says that we believe that recruitment is a log-normal process, 
 
 Easiest way to think about the log normal distribution is a normal distribution with a cv instead of a sigma . So, you can just calculate the cv for your data and that should be sigma in log space 
 
-## Write our stan model
+## Write our Stan Model
 
+Now that we know what we need to model, we just have to code it. We'll work step by step through this process now over in "scripts/bh_model.stan". 
 
-Now that we know what we need to model, we just have to code it. We'll work step by step through 
-this process now
-
+...
 
 Now that we have our `.stan` file written, we just need to pass out data to it and fit the model. the `rstan` package makes it really easy to interface between `R` and `Stan`. 
 
@@ -847,21 +1140,54 @@ Compare conveniently orders the matrix in descending order of model performance.
 
 And just like that, we have a solid sketch of going from raw data, to model fits, to model comparison, using Stan and R. There is clearly a lot more work that would have to go into doing this analysis properly (e.g. we haven't done any testing of the effects of our choices for our prior distributions), but the tools we've gone over here should serve as a useful template to build off of for more complete analysis. 
 
-# CPUE Standardization
+# State-Space Schaefer Model
 
-# State-space Schaefer Model
+Let's see how this foundation works for a more complicated model. The Schaefer (or logistic if you will) model is commonly used as a first pass of estimating the size and status of a fished popultion if an index of abundance and a catch history are available. 
 
+$$b_{t + 1} = b_{t} + b_{t}r(1 - \frac{ b_{t}}{k}) - c_{t}$$
+
+This model is generally fit by relating biomass in time *t* $b_{t}$ to the index of abundance (typically catch-per-unit-effort, or cpue) in that time, through a catchability coefficient *q*
+
+$$cpue_{t} = q{b_{t}}$$
+
+So, writing this out, we get to 
+
+$$[r,k,q,\sigma | cpue] \propto [cpue|sch(r,k,q,catch),\sigma][r][k][q][\sigma] $$
+
+We commonly assume that *cpue* values are log-normally distributed, so we can write our likelihoods as
+
+$$[r,k,q,\sigma | cpue] \propto normal(log(cpue)|log(sch(r,k,q,catch)),\sigma)normal(r| \bar{r}, \sigma_{r})]unif(k | 1000,3000)unif(q,.00001,1)normal(\sigma,0,\sigma_{sigma}]$$
+
+Again, these are just example priors, much more care would be needed in construction of these in a real application. 
+
+In this formulation, what assumption have we made about the nature of the errors in the system?
+
+$$normal(log(cpue)|log(sch(r,k,q,catch)),\sigma)$$
+
+implies that all the error in our model comes from observation. Meaning, the model as written assumes that there is a true population (and hence true cpue described by $qb_{t}$) described perfectly by our Schaefer model, but we measure those cpues imperfectly, with that imperfection quantified by the observation error $\sigma$. This is a commonly made assumption, partly since it makes the modeling much easier.
+
+However, we could also consider *process error*, meaning that there are "errors" (or deviations) in the underlying process model as well. In the case of the Schaefer model, we could think of these as stochastic changes in recruitment driven by environmental factors, which we could write as
+
+
+$$(b_{t + 1} = b_{t} + b_{t}r(1 - \frac{ b_{t}}{k}) - c_{t})e^{normal(p_{t} |0,\sigma_{p})}$$
+
+Meaning that the resulting "process errors" $p_{t}$ are lognormally distributed with a median of 1. 
+
+Notice one weird thing about this.....
+
+Let's try and code this up!
+
+First things first
+
+## Hake Data
 
 ```{r}
 
 hake <- read.table(here::here("data","schaefer.dat"), header=TRUE)
 
-# hake <- read_csv(here::here("data","tuna_data.csv"))
-
-
 hake <- hake %>% 
-  set_names(tolower) #%>% 
-  # mutate(year = 1:nrow(.))
+  set_names(tolower) %>% 
+  mutate(year = 1:nrow(.))
 
 hake %>% 
   gather('variable','index', -year) %>% 
@@ -870,7 +1196,13 @@ hake %>%
   facet_wrap(~variable, scales = 'free_y')
 ```
 
+## Hake Fit
+
 ```{r}
+
+
+n_chains <- 4
+
 hake_data <- list(n_years = nrow(hake),
                   years = hake$year,
                   harvest = hake$catch,
@@ -899,12 +1231,15 @@ hake_fit <- stan(
 hake_fit <- stan(
 fit = hake_fit,
 data = hake_data,
-  chains = 1,
+  chains = n_chains,
   warmup = 1000,
   iter = 2000,
-  cores = 1,
+  cores = n_chains,
   refresh = 25,
+seed = 42,
+# init =  map(1:n_chains, ~map(initials, ~jitter(.x, 0)), initials = initials),
 init = list(initials),
+init =  map(1:n_chains, ~map(initials, ~jitter(.x, 0)), initials = initials),
 control = list(max_treedepth = 15,
                 adapt_delta = 0.99,
                 adapt_engaged = TRUE ))
@@ -912,6 +1247,28 @@ control = list(max_treedepth = 15,
   # init = list(list(log_k = log(10))),
 
 Sys.time() - a
+
+```
+
+## Hake Diagnostics
+
+```{r extract-diagnostics}
+
+
+hake_diagnostics <- rstan::get_sampler_params(hake_fit) %>% 
+  set_names(1:n_chains) %>% 
+   map_df(as_data_frame,.id = 'chain') %>% 
+  group_by(chain) %>% 
+  mutate(iteration = 1:length(chain)) %>% 
+  mutate(warmup = iteration <= 1000)
+ 
+
+hake_diagnostics %>% 
+  group_by(warmup, chain) %>% 
+  summarise(percent_divergent = mean(divergent__ >0)) %>% 
+  ggplot() +
+  geom_col(aes(chain, percent_divergent, fill = warmup), position = 'dodge', color = 'black') + 
+  scale_y_continuous(labels = scales::percent)
 
 ```
 
@@ -1007,9 +1364,31 @@ hake_pop_devs %>%
 ```
 
 
-# Another Example?
+# Hierarchical Regression Models
 
 
-# `rstanarm`/`TMB`
+
+# `rstanarm`
+
+The process we've worked on here can be applied to just about any level of problem, and is especially useful for non-linear problems. 
+
+However, a lot of the time, we just want to run regressions, albeit maybe more complex ones like `glms`, `glmers`, `gams`, etc. We could of course code these up manually, but the nice folks at Stan have conveniently put together a package called `rstanarm`, that provides built in functionality for running most forms of linear regression in Stan. This makes it really easy to run regression in a Bayesian manner, either because you have explicit priors your want to incorporate, or because you simply prefer the statistical interpretation. 
+
+running `rstanarm` is so simple that we don't spend time on it here, and the documentation is very good.  You can run `help(exmaple_model)` to see an example of it's use, but basically you write your linear regression in the exact same way as if you were using `lm`, `glm`, or `glmer`, or whatever, but just pass it to the `stan_` version of it. 
+
+```{r}
+example_model <- 
+  stan_glmer(cbind(incidence, size - incidence) ~ size + period + (1|herd),
+             data = lme4::cbpp, family = binomial,
+             # this next line is only to keep the example small in size!
+             chains = 2, cores = 1, seed = 12345, iter = 500)
+example_model
+```
+
+You can then run all the same diagnostics that we've gone through in this workshop to check whether your model has converged, examine posterior predictives, etc. 
+
+# `TMB`
+
+I would be remise not to spend a moment mentioning Template Model Builder (TMB), since on a recent project of mine I was forced to abandon Stan in favor of TMB... 
 
 
