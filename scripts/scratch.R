@@ -22,6 +22,8 @@ hake_data <- list(n_years = nrow(hake),
                   index = hake$index)
 
 
+uprox <- hake_data$harvest
+
 initials <-
   list(
     log_r = -1.010073 ,
@@ -29,9 +31,9 @@ initials <-
     q = 1e-4,
     sigma_observation = 0.2,
     sigma_harvest = 0.2,
-    sigma_process = 0.2,
-    mean_u =  mean(hake_data$harvest / exp(7.973823))
-  )
+    mean_u =  mean(hake_data$harvest / exp(7.973823)),
+    u_dev = (hake_data$harvest - mean(hake_data$harvest)) / sd(hake_data$harvest))
+
 
 hake_fit <- stan(
   file = here::here("scripts","non-centered-schaefer.stan"),

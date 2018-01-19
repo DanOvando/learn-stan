@@ -127,7 +127,7 @@ model{
 
   sigma_harvest ~ normal(0,1);
 
-  sigma_u ~ normal(0,2);
+  sigma_u ~ normal(0,1);
 
   u_dev ~ normal(0,1);
 
