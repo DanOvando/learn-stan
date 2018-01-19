@@ -25,22 +25,9 @@ parameters{
 
   real log_k; //carrying capacity
 
-  // real<lower=1, upper=5000> iq;
-
-  // real<lower=1, upper=100000> iq;
-
-  real <lower = 0, upper = 0.5> q;
+  real<lower=1, upper=5000> iq;
 
   real<lower = 0> sigma_observation; // observation error
-
-  vector<lower=0, upper=0.8>[n_years]  u; //  fishing mortality
-
-  // vector<lower=2, upper=500>[n_years]  iu; //  process deviations
-
-  real<lower = 0> sigma_harvest; // observation error
-
-  // real<lower = 0> sigma_u; // observation error
-
 
 }
 
@@ -50,13 +37,9 @@ real r;
 
 real k;
 
-// real q;
-
-// vector[n_years] u; //  process deviations
+real q;
 
 vector[n_years] population; // vector of population deviations
-
-  vector[n_years] harvest_hat; // vector of estimated harvest
 
   vector[n_years] index_hat; // vector of estimated index
 
@@ -64,47 +47,24 @@ vector[n_years] population; // vector of population deviations
 
   real temp;
 
-  real counter;
-
-  counter = 0;
-
-// u = 1 ./ iu;
-
 r = exp(log_r);
 
 k = exp(log_k);
 
-// q = 1/iq;
+q = 1/iq;
 
 
 population[1] = k;
 
-harvest_hat[1] = population[1] * u[1];
-
-// population[1] = k;
 
   for (t in 2:n_years){
 
-    temp = (population[t - 1] + r * population[t - 1] * (1 - population[t - 1]/k) - harvest_hat[t - 1]);
+    temp = (population[t - 1] + r * population[t - 1] * (1 - population[t - 1]/k) - harvest[t - 1]);
 
     population[t] = temp;
 
-    harvest_hat[t] = population[t] * u[t];
-
-
-    // if (temp < 0.001) {
-    // counter = counter + 1;
-    //   population[t] = 1/(2-temp/0.001);
-    //
-    // } else {
-
-    // }
-
-// print(counter)
-
   } // close loop
 
-  // print(counter)
 
   index_hat = q * population; //* k;
 
@@ -113,24 +73,16 @@ harvest_hat[1] = population[1] * u[1];
 
 model{
 
+
   // observation model
 
-  // u ~ normal(0, sigma_u);
-
   log_index ~ normal(log_index_hat, sigma_observation);
-
-  harvest ~ normal(harvest_hat, sigma_harvest);
 
   log_k ~ uniform(log(2000),log(8000));
 
   log_r ~ normal(log(.2), 0.25);
 
-  sigma_observation ~ normal(0,2);
-
-  sigma_harvest ~ normal(0,2);
-
-  // sigma_u ~ normal(0,1);
-
+  sigma_observation ~ cauchy(0,2.5);
 
 }
 

@@ -23,23 +23,23 @@ parameters{
 
   real<lower = -2, upper = 0> log_r; // intrinsic growth rate
 
-  real log_k; //carrying capacity
+  real  log_k; //carrying capacity
 
-  // real<lower=1, upper=5000> iq;
+  real<lower = 0, upper = 1e-3> q;
 
-  // real<lower=1, upper=100000> iq;
+  // real<lower=5000, upper=100000> iq;
 
-  real <lower = 0, upper = 0.5> q;
+  real<lower = 0> sigma_process; // process error
 
   real<lower = 0> sigma_observation; // observation error
 
+  real<lower=-1, upper=1>  log_pop_devs[n_years]; //  process deviations
+
   vector<lower=0, upper=0.8>[n_years]  u; //  fishing mortality
 
-  // vector<lower=2, upper=500>[n_years]  iu; //  process deviations
+  // vector<lower=1.1, upper=500>[n_years]  iu; //  inverse fishing mortality
 
   real<lower = 0> sigma_harvest; // observation error
-
-  // real<lower = 0> sigma_u; // observation error
 
 
 }
@@ -77,7 +77,7 @@ k = exp(log_k);
 // q = 1/iq;
 
 
-population[1] = k;
+population[1] = k*exp(log_pop_devs[1]);
 
 harvest_hat[1] = population[1] * u[1];
 
@@ -85,20 +85,12 @@ harvest_hat[1] = population[1] * u[1];
 
   for (t in 2:n_years){
 
-    temp = (population[t - 1] + r * population[t - 1] * (1 - population[t - 1]/k) - harvest_hat[t - 1]);
+    temp = (population[t - 1] + r * population[t - 1] * (1 - population[t - 1]/k) - harvest_hat[t - 1])* exp(log_pop_devs[t]);
 
     population[t] = temp;
 
     harvest_hat[t] = population[t] * u[t];
 
-
-    // if (temp < 0.001) {
-    // counter = counter + 1;
-    //   population[t] = 1/(2-temp/0.001);
-    //
-    // } else {
-
-    // }
 
 // print(counter)
 
@@ -113,9 +105,9 @@ harvest_hat[1] = population[1] * u[1];
 
 model{
 
-  // observation model
+  log_pop_devs ~ normal(0, sigma_process);
 
-  // u ~ normal(0, sigma_u);
+  // observation model
 
   log_index ~ normal(log_index_hat, sigma_observation);
 
@@ -123,14 +115,13 @@ model{
 
   log_k ~ uniform(log(2000),log(8000));
 
-  log_r ~ normal(log(.2), 0.25);
+  log_r ~ normal(log(.3), 0.25);
+
+  sigma_process ~ normal(0, 2);
 
   sigma_observation ~ normal(0,2);
 
   sigma_harvest ~ normal(0,2);
-
-  // sigma_u ~ normal(0,1);
-
 
 }
 
@@ -146,5 +137,3 @@ vector[n_years] pp_log_index_hat;
  }
 
 }
-
-

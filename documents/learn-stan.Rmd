@@ -18,6 +18,8 @@ library(rstanarm)
 library(loo)
 library(tidyverse)
 library(patchwork)
+rstan_options(auto_write = TRUE)
+
 
 ```
 
@@ -29,6 +31,33 @@ Stan is a programming language designed to make statistical modeling easier and 
 That all sounds good, but what why is that useful for me? Suppose you have a hierarchical ecological modeling problem with data clustered by space, time, and species, such as estimating the effect of ocean temperatures on coral growth. You can use Stan to fit that model (and it will likely be faster than BUGS/JAGS if you're already used to working in those platforms). Suppose just want to ues informative priors to help fit a growth model. You can use Stan for that. Suppose you just prefer Bayesian analysis and want to run a simple multiple regression. Stan can do that. 
 
 The purpose of this document is not to illustrate or debate Bayesian analysis, but rather assumes a general knowledge and interest in model fitting, and instead seeks to provide a path to get started using Stan for the practical quantiative researcher. This is not a deep dive into the inner workings of Stan and model fitting - explanations and examples are designed to try and help people get the hang of using Stan. There are many great resources to understand the inner workings of Stan and provide higher-level examples; this is intended as a bridge to help get people there. 
+
+
+## Why Stan?
+
+If you do any kind of hierarchical modeling (which as ecologists basically everything we do is; e.g. analyzing coral populations across space and time), if you want to incorporate prior knowledge into a new analysis (e.g. tother people's estimates of growth rates for a similar species), if you just have a gnarly model that something like `optim` can't handle, or if you just philosophically prefer Bayesian statistics, Bayesian analysis and Stan may be a great tool for you.
+
+
+Bayesian analysis on its own has a number of appealing traits
+
+  - Forces you to very explicitly write out the error structure of your model and prior beliefs
+  
+  - Credibility intervals mean that you think confidence intervals mean
+  
+  - Statistically sound method for building in prior knowledge
+  
+  - Gets you away from the (in my opinion) very confusing world of "fixed" vs "random" effects, since in a Bayesian world all parameters are random, and the question how you structure the priors on those parameters
+  
+  - Diagnostics are much more intuitive than the wild wilderness of Frequentist tests (IMO)
+  
+
+But like all things comes with tradeoffs
+
+  - Computationally intensive (read: can take a lot longer to run, like hours or days compared to seconds to minutes)
+  
+  - Requires careful thought on priors 
+  
+  - Unfamiliar reviewers might not like it (though you can and should push back on this one, but still, worth thinking about)
 
 ## How does Stan work?
 
@@ -362,6 +391,12 @@ print("hooray")
 
 Notice the use of `print` there. `print` is a great way to see what's going on inside your code once you've got it at least syntactically correct (meaning it will compile). 
 
+## A Note on Priors
+
+Setting priors is an art and a science that goes well beyond anything we can discuss here, and there are lots of resources out there to help you on this. You'll notice though that Stan doesn't force you to specify priors, so it can be tempting to say "hey, I like Stan, but priors scare me, so I just won't specify any". By default though, any parameter that isn't supplied a specific prior gets assigned a uniform prior on the range $[-\infty, \infty]$, which might seem innocuous, but is not in fact an uninformative prior (in fact nothing may technically be), especially if your model is not actually defined along that range (e.g. if your parameter can only be positive). 
+
+As such, whiel Stan won't force you to do it, you should always take the time to think carefully about your priors and test the affect of your choices on your model outcomes. 
+
 So, that's a small look at the key features of writing Stan code. There's a ton more out there, but those are the basic tools for most coding. Feel free to play around with the `scratch.stan` file to test out different behaviors. 
 
 
@@ -385,6 +420,8 @@ scratch <- stan(file = here::here('scripts', 'scratch.stan'),
 
 plot(scratch)
 ```
+
+
 
 
 # Example Model: Stock Recruitment Relationships
@@ -613,7 +650,7 @@ class(bh_fit)
 
 `stanfit` options are designed to interface with a few base R commands that you're use to, like `summary` and `plot` (though if you have lots of paremeters simply calling these can be pretty messy)
 
-```{r}
+```{r, eval=F}
 
 summary(bh_fit)
 
@@ -711,7 +748,6 @@ Now that we've taken a look at the highest-level red flags (divergences and tree
   select(variable, everything()) %>% 
   as_data_frame()
 
-bh_summary
 ```
 
 There are two really important diagnostic statistics hidden in this summary:
@@ -901,9 +937,14 @@ The Beverton-Holt model assumes a "compensatory" nature of density dependence. A
 
 We can use `Stan` to test the relative performance of the BH vs Ricker models in explaining the observed patterns of SSB and recruitmenbt. 
 
-Steepness isn't an applicable parameter in the Ricker model, so we will use the form fmor @Dorn2002
+We'll use a parameterization of the Ricker curve that still includes steepness
 
-$$R = \alpha * SSB * exp(-\beta*SSB)$$
+$$ \beta = log(5 * h) / (0.8 * ssb_{max})$$
+
+$$\alpha = log(r_{ssb_{max}} /  ssb_{max}) + beta * ssb_{max}$$
+
+$$ r = ssb  e^{(alpha - beta * ssb)}$$
+
 
 
 ```{r}
@@ -949,9 +990,7 @@ data <- list(
   n_sr_params = 2,
   max_h = 2,
   rec_par_mean = c(2 * max(sal_data$r),  0.5 * max(sal_data$ssb)),
-  rec_par_cv = c(0.5, 0.5),
-  fuck = array(2.367, dim = 1),
-  wtf = 1
+  rec_par_cv = c(0.5, 0.5)
   )
 
 ricker_fit <- stan(file = here::here("scripts","generic_stock_recruit.stan"),
@@ -1049,7 +1088,7 @@ rhat <- ricker_rhat %>%
   geom_ribbon(aes(ssb, ymin = `2.5%`, ymax = `97.5%`, fill = model),alpha = 0.25)
 ```
 
-```{r}
+```{r, eval = F, echo=F}
 
 wtf <- ricker_summary %>% 
   slice(1:4) %>% 
@@ -1198,8 +1237,12 @@ hake %>%
 
 ## Hake Fit
 
-```{r}
+```{r hake}
 
+
+warmups <- 4000
+
+total_iterations <- 8000
 
 n_chains <- 4
 
@@ -1209,50 +1252,91 @@ hake_data <- list(n_years = nrow(hake),
                   index = hake$index)
 
 
-initials <- list(log_r=-1.010073 , log_k= 7.973823, iq=2822.014, sigma_process=1, sigma_observation=1)
-             # log_pop_devs=rep(0, len=nrow(hake)))
+initials <-
+  list(
+    log_r = -1.010073 ,
+    log_k = 7.973823,
+    iq = 4e-5,
+    sigma_observation = .2,
+    sigma_harvest = 0.2,
+    u = (hake_data$harvest / exp(7.973823))
 
-initials2 <- list(log_r=-0.5010073 , log_k= 3.973823, iq=500, sigma_process=1, sigma_observation=1) 
-             # log_pop_devs=rep(0, len=nrow(hake)))
+    # iu = 1 / (hake_data$harvest / exp(7.973823))
+  )
 
-set.seed(22)
-a <- Sys.time()
 hake_fit <- stan(
   file = here::here("scripts","schaefer.stan"),
   data = hake_data,
-  chains = 1,
-  warmup = 10,
-  iter = 50,
-  cores = 1,
-  refresh = 25,
-  init = list(initials))
+  chains = n_chains,
+  warmup = warmups,
+  iter = total_iterations,
+  cores = n_chains,
+  refresh = 250,
+  seed = 42,
+  init =  map(1:n_chains, ~map(initials, ~jitter(.x, 1)), initials = initials),
+  control = list(max_treedepth = 15,
+                 adapt_delta = 0.9))
 
+
+```
+
+```{r ss-hake, eval = F, echo = F}
+
+warmups <- 2000
+
+total_iterations <- 2*warmups
+
+n_chains <- 4
+
+hake_data <- list(n_years = nrow(hake),
+                  years = hake$year,
+                  harvest = hake$catch,
+                  index = hake$index)
+
+
+initials <-
+  list(
+    log_r = -1.010073 ,
+    log_k = 7.973823,
+    iq = 2822.014,
+    sigma_observation = 0.2,
+    sigma_harvest = 0.2,
+    sigma_process = 0.2,
+    u = (hake_data$harvest / exp(7.973823))
+  )
 
 hake_fit <- stan(
-fit = hake_fit,
-data = hake_data,
+  file = here::here("scripts","ss_schaefer.stan"),
+  data = hake_data,
   chains = n_chains,
-  warmup = 1000,
-  iter = 2000,
+  warmup = warmups,
+  iter = total_iterations,
   cores = n_chains,
-  refresh = 25,
-seed = 42,
-# init =  map(1:n_chains, ~map(initials, ~jitter(.x, 0)), initials = initials),
-init = list(initials),
-init =  map(1:n_chains, ~map(initials, ~jitter(.x, 0)), initials = initials),
-control = list(max_treedepth = 15,
-                adapt_delta = 0.99,
-                adapt_engaged = TRUE ))
+  refresh = 250,
+  seed = 42,
+  init =  map(1:n_chains, ~map(initials, ~jitter(.x, 1)), initials = initials),
+  control = list(max_treedepth = 15,
+                 adapt_delta = 0.95))
 
-  # init = list(list(log_k = log(10))),
 
-Sys.time() - a
+hake_mcmc <- hake_fit %>%
+  rstan::extract(permuted = F)
+
+hake_names <- dimnames(hake_mcmc)$parameters
+
+hake_mcmc <- plyr::alply(hake_mcmc, .margins = 3, .dims = T) %>%
+  map_df(as_data_frame, .id = 'variable') %>%
+  gather(chain, estimate, -variable) %>%
+  mutate(chain = str_replace_all(chain,'\\D',"") %>% as.factor()) %>%
+  group_by(variable, chain) %>%
+  mutate(transition = 1:length(estimate)) %>%
+  ungroup()
 
 ```
 
 ## Hake Diagnostics
 
-```{r extract-diagnostics}
+```{r hake-diagnostics}
 
 
 hake_diagnostics <- rstan::get_sampler_params(hake_fit) %>% 
@@ -1260,7 +1344,7 @@ hake_diagnostics <- rstan::get_sampler_params(hake_fit) %>%
    map_df(as_data_frame,.id = 'chain') %>% 
   group_by(chain) %>% 
   mutate(iteration = 1:length(chain)) %>% 
-  mutate(warmup = iteration <= 1000)
+  mutate(warmup = iteration <= warmups)
  
 
 hake_diagnostics %>% 
@@ -1273,7 +1357,69 @@ hake_diagnostics %>%
 ```
 
 
-plot results
+
+```{r hake-treedepth}
+max_treedepth = 15
+hake_diagnostics %>% 
+  ggplot(aes(iteration, treedepth__, color = chain)) + 
+  geom_line() + 
+  geom_hline(aes(yintercept = max_treedepth), color = 'red')
+
+```
+
+
+```{r hake-stepsize}
+
+hake_diagnostics %>% 
+  ggplot(aes(iteration, stepsize__, color = chain)) + 
+  geom_line() 
+
+```
+
+
+
+```{r}
+hake_mcmc <- hake_fit %>% 
+  rstan::extract(permuted = F)
+
+hake_names <- dimnames(hake_mcmc)$parameters
+
+hake_mcmc <- plyr::alply(hake_mcmc, .margins = 3, .dims = T) %>% 
+  map_df(as_data_frame, .id = 'variable') %>% 
+  gather(chain, estimate, -variable) %>% 
+  mutate(chain = str_replace_all(chain,'\\D',"") %>% as.factor()) %>% 
+  group_by(variable, chain) %>% 
+  mutate(transition = 1:length(estimate)) %>% 
+  ungroup()
+ 
+
+hake_mcmc %>% 
+  ungroup() %>% 
+  filter(variable == 'log_k') %>% 
+  ggplot(aes(transition, estimate, color = chain)) + 
+  geom_line(show.legend = F) + 
+  facet_wrap(~chain, scales = 'free_y')
+
+hake_mcmc %>% 
+  ungroup() %>% 
+  filter(str_detect(variable, 'population')) %>% 
+  mutate(pop_year = str_replace_all(variable, "\\D","") %>% as.numeric()) %>% 
+  ggplot(aes(pop_year, estimate, color = transition %>% as.factor())) + 
+  geom_line(show.legend = F) + 
+  facet_wrap(~chain, scales = 'free_y')
+
+  hake_mcmc %>% 
+  ungroup() %>% 
+  filter(str_detect(variable, 'u\\[')) %>% 
+  mutate(pop_year = str_replace_all(variable, "\\D","") %>% as.numeric()) %>% 
+  ggplot(aes(pop_year, estimate, color = transition %>% as.factor())) + 
+  geom_line(show.legend = F) + 
+  facet_wrap(~chain, scales = 'free_y')
+
+
+```
+
+
 
 ```{r}
 
@@ -1281,6 +1427,19 @@ hake_summary <- summary(hake_fit)$summary %>%
   as.data.frame() %>% 
   mutate(variable = rownames(.)) %>% 
   as_data_frame()
+
+hake_summary %>% 
+  ggplot(aes(Rhat)) + 
+  geom_histogram() + 
+  geom_vline(aes(xintercept = 1.1), color = 'red')
+
+```
+
+## Plot Hake Results
+
+```{r plot-hake}
+
+
 
 hake_fit_index <- hake_summary %>% 
   filter(str_detect(variable,'index')) %>% 
@@ -1292,14 +1451,24 @@ hake_fit_index <- hake_summary %>%
 
 
 biomass <- hake_summary %>% 
-  filter(str_detect(variable,'biomass')) %>% 
+  filter(str_detect(variable,'population')) %>% 
   mutate(year = str_replace_all(variable,'\\D','') %>% as.numeric()) %>% mutate(year = hake$year)
+
+
+harvest <- hake_summary %>% 
+  filter(str_detect(variable,'harvest_hat')) %>% 
+  mutate(year = str_replace_all(variable,'\\D','') %>% as.numeric()) %>% mutate(year = hake$year)
+
+
+
 
 b_and_c <- biomass %>% 
   ggplot() + 
-  geom_line(aes(year, mean), linetype = 2, color = 'red') + 
-  geom_ribbon(aes(year, ymin = `2.5%`, ymax = `97.5%`), alpha = 0.25, fill = 'red') + 
-  geom_line(data = hake, aes(year, catch))
+  geom_line(aes(year, mean), linetype = 2, color = 'red') +
+  geom_ribbon(aes(year, ymin = `2.5%`, ymax = `97.5%`), alpha = 0.25, fill = 'red') +
+  geom_point(data = hake, aes(year, catch)) + 
+  geom_line(data = harvest, aes(year, mean), linetype = 2, color = 'red') + 
+  geom_ribbon(data = harvest,aes(year, ymin = `2.5%`, ymax = `97.5%`), alpha = 0.25, fill = 'red') 
 
 
 fit_plot <- hake_fit_index %>% 
@@ -1315,7 +1484,8 @@ d <- b_and_c + fit_plot + plot_layout(ncol = 2, nrow = 1)
 
 ```
 
-```{r}
+
+```{r, eval = F, echo = F}
 
 hake_pop_devs <- hake_summary %>% 
   filter(str_detect(variable,'log_pop_devs')) %>% 
@@ -1327,22 +1497,6 @@ hake_pop_devs <- hake_summary %>%
 
 hake_pop_devs %>% 
   ggplot(aes(year, log_pop_devs)) + 
-  geom_line()
-
-```
-
-```{r}
-
-hake_pop_devs <- hake_summary %>% 
-  filter(str_detect(variable,'biomass')) %>% 
-  mutate(year = str_replace_all(variable,'\\D','') %>% as.numeric()) %>% 
-  mutate(variable = str_replace_all(variable,"(\\d)|(\\[)|(\\])","")) %>% 
-  select(mean, variable, year) %>% 
-  spread(variable, mean) %>% 
-  mutate(true_index = hake$index)
-
-hake_pop_devs %>% 
-  ggplot(aes(year, biomass)) + 
   geom_line()
 
 ```
@@ -1376,7 +1530,7 @@ However, a lot of the time, we just want to run regressions, albeit maybe more c
 
 running `rstanarm` is so simple that we don't spend time on it here, and the documentation is very good.  You can run `help(exmaple_model)` to see an example of it's use, but basically you write your linear regression in the exact same way as if you were using `lm`, `glm`, or `glmer`, or whatever, but just pass it to the `stan_` version of it. 
 
-```{r}
+```{r, eval = F}
 example_model <- 
   stan_glmer(cbind(incidence, size - incidence) ~ size + period + (1|herd),
              data = lme4::cbpp, family = binomial,

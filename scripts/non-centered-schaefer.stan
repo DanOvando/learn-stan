@@ -25,21 +25,17 @@ parameters{
 
   real log_k; //carrying capacity
 
-  // real<lower=1, upper=5000> iq;
-
-  // real<lower=1, upper=100000> iq;
-
   real <lower = 0, upper = 0.5> q;
 
   real<lower = 0> sigma_observation; // observation error
 
-  vector<lower=0, upper=0.8>[n_years]  u; //  fishing mortality
+  real<lower = 0, upper = 0.8> mean_u;
 
-  // vector<lower=2, upper=500>[n_years]  iu; //  process deviations
+  vector[n_years]  u_dev; //  fishing mortality
+
+  real<lower = 0> sigma_u;
 
   real<lower = 0> sigma_harvest; // observation error
-
-  // real<lower = 0> sigma_u; // observation error
 
 
 }
@@ -50,9 +46,7 @@ real r;
 
 real k;
 
-// real q;
-
-// vector[n_years] u; //  process deviations
+real u[n_years]; //  process deviations
 
 vector[n_years] population; // vector of population deviations
 
@@ -68,7 +62,11 @@ vector[n_years] population; // vector of population deviations
 
   counter = 0;
 
-// u = 1 ./ iu;
+for (i in 1:n_years){
+u[i] =  mean_u + sigma_u * u_dev[i];
+}
+
+// mean_u + sigma_u .*
 
 r = exp(log_r);
 
@@ -125,11 +123,14 @@ model{
 
   log_r ~ normal(log(.2), 0.25);
 
-  sigma_observation ~ normal(0,2);
+  sigma_observation ~ normal(0,1);
 
-  sigma_harvest ~ normal(0,2);
+  sigma_harvest ~ normal(0,1);
 
-  // sigma_u ~ normal(0,1);
+  sigma_u ~ normal(0,2);
+
+  u_dev ~ normal(0,1);
+
 
 
 }

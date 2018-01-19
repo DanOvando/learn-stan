@@ -51,9 +51,6 @@ real<lower = 0> rec_par_mean[n_sr_params];
 
 real<lower = 0> rec_par_cv[n_sr_params];
 
-// real<lower = 0> fuck[wtf];
-
-
 
 }
 transformed data{
