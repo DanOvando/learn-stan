@@ -7,3 +7,8 @@ documents/appfiles/
 *.html
 *.pdf
 *.Rproj
+
+
+# Xaringan shenanigans
+presentations/libs/
+presentations/xaringan-example_files/
