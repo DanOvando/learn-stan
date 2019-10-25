@@ -10,15 +10,17 @@ However, many of the available resources can be daunting to people unfamiliar wi
 
 To begin with, please fork or clone this repository to the machine you will be using, since it contains scripts and data that we will ba making use of. 
 
-Please also make sure that 
+**WARNING: DON'T UPGRADE TO CATALINA ON MACS!** Apparently there's a major issue running Stan on the latest macOS. 
 
-  - Your version of R is up to date (R version 3.4.3 (2017-11-30) Kite-Eating Tree as of this writing)
-  
-  - All of your packages are up to date, either by running `update.packages()` in R, or in Rstudio you can go to "Tools > Check For Package Updates"
-  
-  - Rstudio is optional for this workshop, but will certainly make life easier to have it!
-  
+Please make sure that
+
   - If you don't have it, please install the `tidyverse` suite of packages using `install.packages("tidyverse")`. If you don't like using the `tidyverse` that's fine, but it will help you work along with the examples here
+  
+  - Also tnstall 
+    - `tidybayes`
+    - `bayesplot`
+    - `rstanarm`
+    - `gapminder`
 
 Second, please go to Stan's instructions on installing Stan for use with R, which you can find [here](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started)
 
