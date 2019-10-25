@@ -1,10 +1,11 @@
 ---
 title: "Getting Started with Stan"
 author: "Dan Ovando"
-institute: "EcoDataScience Presentation"
+institute: "eco-data-science Seminar"
 date: "`r Sys.Date()`"
 output:
   xaringan::moon_reader:
+    css: ["default","default-fonts","my-theme.css"]
     lib_dir: libs
     nature:
       highlightStyle: github
@@ -55,6 +56,9 @@ theme_set(pres_theme)
 
 # Objectives for Workshop
 
+<br>
+<br>
+<br>
 .center[**To Bayes or not to Bayes should be a philosophical question, not a practical one**]
 
 ---
@@ -69,8 +73,10 @@ class: center, middle, inverse
 
 
 Bayes Theorem:
-
+<br>
+<br>
 $$p(model|data) = \frac{p(data|model) \times p(model)}{p(data)} $$
+
 
 
 ---
@@ -94,12 +100,14 @@ $$prob(crazy|jumping) \propto prob(jumping|crazy)prob(crazy)$$
 
 # Bayesian vs. Frequentist
 
-This is a deep topic that we dont' have time to get into! But from an ecological perspectice Bayes has some nice features
+This is a deep topic that we don't' have time to get into! But from an ecological perspective Bayes has some nice features
 
 
 .pull-left[
 
 ### Bayes
+
+Data are fixed, parameters are random
 
 What is the probability of a model given the data?
 
@@ -112,6 +120,8 @@ But, means you have to think about priors
 ] .pull-right[
 
 ### Frequentist
+
+Data are random, parameters are fixed
 
 How likely are the observed data if a given model is true?
 
@@ -155,7 +165,7 @@ $$y_i = \beta{x_i} + \epsilon_i$$
 # A Likelihood Refresher
 
 
-Another way to write that model is a "data-generating process"
+Another way to write that model is a data-generating model
 
 $$y_i \sim normal(\beta{x_i},\sigma)$$
 
@@ -184,9 +194,9 @@ $$y_i \sim normal(\beta{x_i},\sigma)$$
 
 --
 
-Our prior on $beta$ can be 
+We can use these priors for the parameters
 
-$\beta \sim normal(0,2.5)$
+$\beta \sim normal(0,2.5)$$
 
 $$\sigma \sim cauchy(0,2.5)$$
 
@@ -195,7 +205,7 @@ And so our posterior (no longer just likelihood) is proportional to
 `dnorm(y,beta * x, sigma) x dnorm(beta,0, 2.5) X dcauchy(sigma,0,2.5)`
 
 ???
-why only propotional?
+why only proportional?
 
 notice a bit of a dirty secret here: the priors have to stop somewhere. 
 
@@ -247,7 +257,7 @@ When in doubt, check sensitivity to different priors
 
 .pull-left[
 
-If that all made you a little quesy, don't worry, we're back to code!
+If that all made you a little queasy, don't worry, we're back to code!
 
 This can seem like deep stuff, but I really find it easier than the frequentist stats I was trained on. 
 
@@ -284,7 +294,7 @@ Big reason that Bayes wasn't historically used as much was that except for some 
 Started to change when computers made Markov Chain Monte Carlo (MCMC) practical
   - Monte Carlo - try lots of different numbers
   
-  - Markov Chain - an elegent way of choosing those numbers
+  - Markov Chain - an elegant way of choosing those numbers
 
 ---
 
@@ -452,7 +462,7 @@ summary(simple_lifexp_model)
   - `stan_gamm2`
   - `stan_lm`
   
-In most ways the syntax etc. works the same as the ML versions: going from a standard binominal glm to a bayesian as as simple as
+In most ways the syntax etc. works the same as the ML versions: going from a standard binominal glm to a Bayesian as as simple as
 
 `glm(diagnosis ~ traits, data = data, family = binomial())`
 
@@ -463,7 +473,7 @@ In most ways the syntax etc. works the same as the ML versions: going from a sta
 
 # Digging into `rstanarm`
 
-This isn't ths class to learn `glm`s / hierarchichal modeling (see the books I keep plugging)
+This isn't the class to learn `glm`s / hierarchical modeling (see the books I keep plugging)
 
 What we will go over are some of the stan-specific options and diagnostics that apply across any model type you're using
 
@@ -696,7 +706,7 @@ Getting lots of `max_treedepth exceeded` warnings means that the algorithm hit t
 
 This is more of an efficiency problem than a fundamental model fitting problem like divergences. 
 
-Solutions include increasing `max_treedepth`, and trying a longer warmup period, and reparameterizing the model. s
+Solutions include increasing `max_treedepth`, and trying a longer warmup period, and reparameterizing the model.
 
 
 ---
@@ -905,6 +915,12 @@ Suppose I show you the following results from `lm`
 
 How would you interpret this?
 
+--
+
+```{r out.width = '80%', echo = FALSE}
+knitr::include_graphics("https://media.giphy.com/media/K8zzqui9viWT6/giphy.gif")
+```
+
 ???
 
 More of less, if you repeated the same experiment many times, 95% of the times the CI from this model would contain the true value
@@ -972,9 +988,10 @@ lifexp_model %>%
   mutate(country = str_replace(.variable, "country",'')) %>% 
   left_join(gapminder %>% select(country, continent) %>% unique()) %>% 
   group_by(.draw, continent) %>% 
-  summarise(mean_intercept = mean(.value)) %>% 
+  summarise(mi = mean(.value)) %>% 
   group_by(.draw) %>% 
-  summarise(`Continent Difference` = mean_intercept[continent == "Europe"] - mean_intercept[continent == "Americas"]) -> continent_delta
+  summarise(`Continent Difference` = 
+  mi[continent == "Europe"] - mi[continent == "Americas"]) -> continent_delta
 
 head(continent_delta,5)
 ```
@@ -990,18 +1007,50 @@ head(continent_delta,5)
 pl <- scales::percent(mean(continent_delta$`Continent Difference` < 0),2)
 
 continent_delta %>% 
+  filter(between(`Continent Difference`, quantile(`Continent Difference`,0.055), quantile(`Continent Difference`,0.945))) %>% 
   ggplot(aes(`Continent Difference`)) + 
   geom_vline(aes(xintercept = 0)) + 
   geom_histogram(alpha = 0.5) + 
   scale_x_continuous(name = "Difference in Mean Intercepts of Europe and Americas") + 
-  labs(caption = glue::glue("Prob that Europe intercept is less than Americas is {pl}"))
+  labs(caption = glue::glue("Prob that Europe intercept is less than Americas is {pl}"), title = "89% Credible Distribution of Difference in Mean Intercepts")
 ```
 
 ???
 We basically just replaced that crazy flowchart of statistical tests with the `tidyverse`
 ---
 
+# Model Comparison with `loo`
 
+We often use things like AIC to pick between models
+  - What is AIC measuring?
+
+--
+
+Stan has built in functionality for leave-one-out cross validation `loo`
+  - Usable on any `stanfit` object 
+
+We don't have time to dig into this, but see documentation [here](https://mc-stan.org/loo/)
+
+---
+
+# Model Comparison with `loo`
+`elpd_diff` measures how much worse a model is than the preferred model
+  - Should be at least 2 times `se_diff`
+```{r, cache = TRUE}
+
+model_a <- stan_glm(log(lifeExp) ~ log(gdpPercap), data = gapminder,
+                    refresh = 0)
+
+model_b <- stan_glm(log(lifeExp) ~ log(gdpPercap):continent, data = gapminder,
+                    refresh = 0,
+                    iter = 10000)
+
+loo::loo_compare(loo(model_a), loo(model_b))
+
+```
+
+
+---
 
 
 class: center, middle, inverse
@@ -1019,16 +1068,50 @@ Hopefully you've also seen that Bayesian models can make statistical inference M
 Lots of times though, we want to move beyond linear regression. Bayesian estimation through HMC is particularly good at estimating really complex models. 
 
 For that, you may need to write your own stan code
-  - [brms](https://paul-buerkner.github.io/brms/) is a great package for writting non-linear models in stan without writing the stan code. Not going to cover here
+  - [brms](https://paul-buerkner.github.io/brms/) is a great package for writing non-linear models in stan without writing the stan code. Not going to cover here
   
   
 ---
 
 
+# Stan
+
+Stan is a programming language written in C++, with a lot of "sugar" to make your life easier. 
+
+But, it is still a compiled language. This means that unlike R / Python, you can't just run it line by line in an IDE. 
+
+This makes it much faster, but also a little tougher to get going. 
+
+But, the good news is that you can use R for all your pre-and-post model wrangling, and Stan for just the model fitting. 
+
+---
+
 # Anatomy of a .stan file
 
+Best way is to write a Stan model is create a new .stan file. 
+
+Each stan model is broken into blocks
+
+```{stan, eval = FALSE, output.var = "scratch"}
+
+data{
+# declare data being passed to the model
+}
+parameters{
+# declare parameters to be estimated
+}
+transformed parameters{
+# apply transformations to parametres (e.g log)
+}
+model{
+# define the statistical parameters
+}
+generated quantities{
+# calculate things like posterior predictives
+}
 
 
+```
 
 
 
@@ -1037,62 +1120,341 @@ For that, you may need to write your own stan code
 
 # General stan syntax
 
-C++ like (but no zero indexing!)
+For the most part, most things work like they do in R!
+  - e.g. `for`, `if`, `while` work exactly the same
+  - `x[1,1:5]` gives the first five columns of the first row of x
+  - Things are indexed at 1!
+  
+Major differences
 
-Lots of nice vectorization built in
+  - It's C++, so everything has to end with `;`
+  
+  - You have to explicitly declare types and dimensions
+    - This is usually the hardest part for people
+
+We'll practice this by filling in a model
+```{stan, output.var = "test", eval = FALSE}
+real x;
+x = 2 + 2;
+```
+
+---
+
+# The Data
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+arfloundbsai <- read_rds(here::here("data","ARFLOUNDBSAI.rds"))
+
+flound <- arfloundbsai$data[[1]]  %>% 
+  na.omit() 
+
+flound %>% 
+  ggplot(aes(ssb, recruits)) + 
+  geom_point(size = 4, shape = 21, fill = "steelblue") + 
+  geom_smooth() +
+  scale_x_continuous(limits = c(0,NA))
+
+```
 
 ---
 
 # data block
 
+Anything being passed from R to stan goes in here
+
+Remember you need to declare both type and dimensions!
+
+```{stan, eval = FALSE, output.var = "scratch"}
+data{
+int<lower = 1> n; //number of observations
+
+vector[n] spawners; // vector of spawners
+
+vector[n] recruits; // vector of recruits
+}
+```
+
+---
+
+# The Model
+
+We're going to fit a simple Beverton-Holt Spawner-Recruit model to these data. 
+
+$$recruits \sim logn(\frac{(0.8 \times r0 \times h \times s)}{ (0.2 \times s0 \times (1 - h) +(h - 0.2) \times s)},\sigma)$$
+
+  
+```{r, echo = FALSE}
+h <-  0.7
+r0 <- max(flound$recruits) * .5
+ssb0 <- max(flound$ssb) * .75
+
+flound$pred <- (0.8 * r0 * h * flound$ssb) / (0.2 * ssb0 * (1 - h) + (h - 0.2) * flound$ssb)
+
+
+flound %>% 
+  ggplot() + 
+  geom_point(aes(ssb, recruits),size = 4) +
+  geom_line(aes(ssb, pred, color = "Model guess"),size = 1.5) + 
+  scale_color_discrete(name = "") + 
+  scale_x_continuous(limits = c(0, NA), name = "Spawners") + 
+  scale_y_continuous(name = "Recruits") + 
+  theme(legend.position = "top")
+
+```
 
 ---
 
 
+# transformed data block
+All objects must be declared in the first part of a block
+```{stan, eval = FALSE, output.var = "scratch"}
+transformed data{
+vector[n] log_recruits; // log recruitment
+log_recruits = log(recruits);
+}
+```
+
+---
+
 # parameter block
+
+The parameter block is where you declare things the model will estimate. 
+
+Notice that stan lets you declare bounds in here!
+
+```{stan, eval = FALSE, output.var = "scratch"}
+parameters{
+real<lower = 0.2, upper = 1> h; //steepness
+real log_r0; // unfished recruitment
+real log_s0; // unfished spawners
+real<lower = 0> sigma;
+}
+```
 
 
 ---
 
 # transformed parameter block
 
+Consider a population model: The biomass over time if just a transformation of the parameters. 
 
+By default stan still return draws from things in the transformed parameters
+
+```{stan, eval = FALSE, output.var = "scratch"}
+transformed parameters{
+vector[n] recruits_hat;
+vector[n] log_recruits_hat;
+real r0;
+real s0;
+r0 = exp(log_r0);
+s0 = exp(log_s0);
+recruits_hat = (0.8 * r0 * h * spawners) ./ (0.2 * s0 * (1 - h) +(h - 0.2) * spawners);
+log_recruits_hat = log(recruits_hat);
+}
+```
 ---
 
 
 # model block
 
+This is where you write your *statistical* model 
+
+Things created in `model` block are only visible in `model` block
+  - Trade-off between output usability/clarity
+
+**You can't put priors on transformed parameters**
+.footnote[without some voodoo]
+
+```{stan  eval = FALSE, output.var = "scratch"}
+model{
+log_recruits ~ normal(log_recruits_hat - 0.5 * sigma^2, sigma); // bias correction
+sigma ~ cauchy(0,2.5);
+log_s0 ~ normal(15,2);
+log_r0 ~ normal(8,2);
+h ~ beta(6,2);
+}
+```
 
 ---
 
 # generated quantities
 
+This is mostly used for generating posterior predictives. 
+
+Note the R-like syntax of most things
+
+```{stan eval = FALSE, output.var = "scratch"}
+generated quantities{
+  vector[n] pp_rhat;
+  for (i in 1:n) {
+   pp_rhat[i] = exp(normal_rng(log_recruits_hat[i] - 0.5 * sigma^2, sigma));
+  }
+}
+
+```
 
 ---
 
 
-# Examining your model
+# Fitting the Model
 
+Once you've written the model, you just need to pass it to `rstan::stan`
+
+```{r, message=FALSE, warning=FALSE}
+
+chains <- 4
+
+inits <- list(s0 = max(flound$ssb) * 1.5, r0 = max(flound$recruits), h = 0.7)
+
+inits <- map(1:chains,~ map(inits, jitter,1))
+
+bh_fit <- rstan::stan(
+  file = here::here("src","bh_model.stan"),
+  data = list(spawners = flound$ssb,
+              recruits = flound$recruits,
+              n = length(flound$ssb)),
+  init = inits,
+  chains = chains,
+  cores = chains, 
+  iter = 10000,
+  refresh = 0
+)
+```
 
 ---
 
+
+# Examining Fits
+
+Even though we're not using rstanarm anymore, the diagnostics are still the same. 
+
+```{r}
+check_hmc_diagnostics(bh_fit)
+```
+
+We can also use `shinystan` to explore our fit
+
+---
+
+# Looking at our fits
+
+Let's first examine fit of our estimated spawner recruit data. 
+
+By default, `stan` returns draws from anything defined in `parameters`, `transformed parameters`, and `generated quantities` block
+
+Let's use `tidybayes` to get our fitted and posterior predictive recruits out. 
+
+Note ability of `tidybayes` to deal with variables with more than one value
+
+```{r}
+
+fitted_recruits <-
+  tidybayes::gather_draws(bh_fit, recruits_hat[year], pp_rhat[year]) 
+
+head(fitted_recruits,2)
+
+```
+
+---
+
+# Looking at our Fits
+
+Let's calculate the mean and 80% credible interval for each type of prediction over time
+
+```{r}
+fitted_recruits <-  fitted_recruits %>% 
+  group_by(year, .variable) %>%
+  summarise(rhat = mean(.value),
+            lower = quantile(.value, 0.1),
+            upper = quantile(.value, 0.9)) %>% 
+  ungroup() %>% 
+  mutate(year = year + min(flound$year) - 1)
+
+
+```
+
+---
+
+# Looking at our Fits
+
+And now plot!
+
+Why is the posterior predictive so much wider than the mean prediction?
+
+```{r, echo = FALSE}
+
+fitted_recruits %>% 
+  left_join(flound, by = "year") %>% 
+  ggplot() + 
+  geom_point(data = flound, aes(ssb, recruits), size = 4, shape = 21, fill = "lightgrey") + 
+  geom_ribbon(aes(ssb,ymin = lower, ymax = upper, fill = .variable), alpha = 0.25) + 
+  geom_line(aes(ssb,rhat,color = .variable)) + 
+  scale_x_continuous(limits = c(0,NA), name = "SSB") +
+  scale_y_continuous(name = "Recruits") +
+  theme(legend.position = "top") + 
+  scale_fill_discrete(name = '', labels = c("Posterior Predictive","Mean Prediction")) + 
+    scale_color_discrete(name = '',labels = c("Posterior Predictive","Mean Prediction"))
+
+
+```
+
+---
+
+
+# Exercise
+
+* Extract the posterior of the steepness parameter *h*
+
+* Plot the posterior,and compare to the prior
+
+* Try and make the prior more/less informative and compare the prior/posterior plots
+
+
+---
 
 # Using your model to make predictions
 
+Often in environmental problems we need to fit our model to one set of data, and predict on others. 
+
+This is pretty easy using `rstanarm` and `brms`, but a bit more challenging using `stan`. 
+
+The recommended option is to allow your model to take different data for the posterior predictive than the fitting data
+  - This can be time consuming
+  
+As an alternative, I recommend using the `algorithm = "Fixed_param"` option, and applying each draw from your posterior to your mode. 
+
+  - See example [here](https://github.com/DanOvando/learn-stan/blob/master/scripts/generate-stan-predictions.R)
 
 ---
 
 # Where to learn more?
 
-Vignettes, bugs examples, etc. 
+Bayesian modeling and stan are big and complex topics
+
+  - They can be extremely useful in ecological modeling
+
+  - They're not that scary
+  
+Recommended Books
+
+- [Statistical Rethinking](https://xcelab.net/rm/statistical-rethinking/)
+
+- [Bayesian Models: A Statistical Primer for Ecologists](https://xcelab.net/rm/statistical-rethinking/)
+
+- [Bayesian Data Analysis](http://www.stat.columbia.edu/~gelman/book/)
+
+Online Resources
+
+- the Stan [community](https://discourse.mc-stan.org/)
+
+- Stan [documentation](https://mc-stan.org/rstan/)
+
+- [Example](https://github.com/stan-dev/example-models) models (including reworked BUGS examples)
+
+- [My tutorial](https://www.weirdfishes.blog/blog/fitting-bayesian-models-with-stan-and-r/)
 
 ---
 
-
-# Model Comparison with `loo`
-
-
----
 
 
 

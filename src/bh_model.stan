@@ -2,28 +2,25 @@ data{
 
 int<lower = 0> n; // number of observations
 
-vector[n] ssb; // vector of observed ssb
+vector[n] spawners; // vector of observed ssb
 
-vector[n] r; // vector of recruits
-
-real max_r;  // max observed recruitment
-
+vector[n] recruits; // vector of recruits
 
 }
 transformed data{
 
-vector[n] log_r; // log recruitment
+vector[n] log_recruits; // log recruitment
 
-log_r = log(r);
-
-
+log_recruits = log(recruits);
 }
 
 parameters{
 
 real<lower = 0.2, upper = 1> h; //steepness
 
-real<lower = 0> alpha; // max recruitment
+real log_r0; // unfished recruitment
+
+real log_s0; // unfished spawners
 
 real<lower = 0> sigma;
 
@@ -31,24 +28,36 @@ real<lower = 0> sigma;
 }
 transformed parameters{
 
-vector[n] rhat;
+vector[n] recruits_hat;
 
-vector[n] log_rhat;
+vector[n] log_recruits_hat;
 
-rhat = (0.8 * alpha * h * ssb) ./ (0.2 * alpha * (1 - h) +(h - 0.2) * ssb);
+real r0;
 
-log_rhat = log(rhat);
+real s0;
+
+r0 = exp(log_r0);
+
+s0 = exp(log_s0);
+
+recruits_hat = (0.8 * r0 * h * spawners) ./ (0.2 * s0 * (1 - h) +(h - 0.2) * spawners);
+
+log_recruits_hat = log(recruits_hat);
 
 }
 
 
 model{
 
-log_r ~ normal(log_rhat - 0.5 * sigma^2, sigma);
+log_recruits ~ normal(log_recruits_hat - 0.5 * sigma^2, sigma);
 
 sigma ~ cauchy(0,2.5);
 
-alpha ~ normal(2*max_r, 0.1*2*max_r);
+log_s0 ~ normal(15,2);
+
+log_r0 ~ normal(8,2);
+
+h ~ beta(6,2);
 
 }
 
@@ -57,9 +66,9 @@ generated quantities{
   vector[n] pp_rhat;
 
   for (i in 1:n) {
-
-   pp_rhat[i] = exp(normal_rng(log_rhat[i] - 0.5 * sigma^2, sigma));
-
+   pp_rhat[i] = exp(normal_rng(log_recruits_hat[i] - 0.5 * sigma^2, sigma));
   }
 
 }
+
+

@@ -12,3 +12,5 @@ documents/appfiles/
 # Xaringan shenanigans
 presentations/libs/
 presentations/xaringan-example_files/
+
+*_cache/
