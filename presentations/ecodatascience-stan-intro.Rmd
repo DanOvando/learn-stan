@@ -39,7 +39,7 @@ theme_set(pres_theme)
 # Objectives for Workshop
 
 1. Basics of Bayes
-  - What is it and why use it
+  - What is it and why to use it
 
 2. Bayesian regression with `rstanarm`
 
@@ -302,7 +302,8 @@ MCMC can be shown to always converge!
 
 Sounds like magic, but basically says, "If you try every number in existence, you'll find the solution"
 
-The trick is finding an efficient way to explore the parameter space. 
+The trick is finding an efficient way to explore the parameter space. '
+  - Something that jumps around with purpose
 ] .pull-right[
 
 ```{r, echo = FALSE}
@@ -320,8 +321,7 @@ set.seed(42)
 x <- 1:500 #make up independent data
 true_param <- .5 # true relationship between x and y
 y <- true_param * x # simulate y
-steps <- 1e5 # number of MCMC steps to take
-# steps <- 5e5 # number of MCMC steps to take
+steps <- 5e5 # number of MCMC steps to take
 param <- rep(0, steps) # vector of parameter values
 old_fit <- log(sum((y - (x * param[1]))^2)) # fit at starting gues
 jumpyness <- 1 # controls random jumping around
@@ -361,7 +361,7 @@ post_plot <- trace %>%
   geom_histogram() + 
   geom_vline(aes(xintercept = true_param), color = "red")
   
-trace_plot + post_plot * theme_minimal()
+trace_plot + post_plot & theme_minimal()
 
 
 ```
@@ -673,6 +673,8 @@ Try out a couple different kinds of priors
   - How does this change as you reduce the sample size of the data?
   
   - Look at `?rstanarm::priors`
+  
+  - Test out the effect of different distributions for the priors
 
 ---
 
@@ -743,7 +745,7 @@ E-BFMI is a measure of the warmup success. A warning here suggests you might nee
 
 # Diagnosing stan models
 
-This is one of the nicest features of Bayesian analysis: the diagnostics are more or less the same no matter what kind of model you're fitting. 
+<!-- This is one of the nicest features of Bayesian analysis: the diagnostics are more or less the same no matter what kind of model you're fitting.  -->
 
 Stan has numerous built in functions for looking at these diagnostics, and will even include helpful suggestions about them! They generally stat with `rstan::check_<something>`
 
@@ -886,13 +888,7 @@ tidybayes::gather_draws(lifexp_model,`(Intercept)`,`log(gdpPercap)`) %>%
 
 ---
 
-# Bayes + Tidyverse
-
-See [`tidybayes`](https://github.com/mjskay/tidybayes) and 
-
-[`bayesplot`](https://mc-stan.org/bayesplot/) 
-
-for some great tools for tidying and plotting Bayesian models
+# [`tidybayes`](https://github.com/mjskay/tidybayes) & [`bayesplot`](https://mc-stan.org/bayesplot/) 
 
 
 ```{r}
@@ -957,13 +953,13 @@ In a Bayesian world, most statistical tests go from mathematical exercises to da
 Let's augment our model a bit to play with this idea. 
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 lifexp_model <- stan_glm(log(lifeExp) ~ log(gdpPercap) + country,
                          data = gapminder,
                          refresh = 0,
                          adapt_delta = 0.95,
-                         iter = 10000,
+                         iter = 15000,
                          cores = 4)
 
 ```
