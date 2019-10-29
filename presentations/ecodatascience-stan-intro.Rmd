@@ -1,7 +1,7 @@
 ---
 title: "Getting Started with Stan"
-author: "Dan Ovando"
-institute: "eco-data-science Seminar"
+author: "Dan Ovando - University of Washington"
+institute: "UCSB eco-data-science Seminar"
 date: "`r Sys.Date()`"
 output:
   xaringan::moon_reader:
@@ -321,7 +321,7 @@ set.seed(42)
 x <- 1:500 #make up independent data
 true_param <- .5 # true relationship between x and y
 y <- true_param * x # simulate y
-steps <- 5e5 # number of MCMC steps to take
+steps <- 1e6 # number of MCMC steps to take
 param <- rep(0, steps) # vector of parameter values
 old_fit <- log(sum((y - (x * param[1]))^2)) # fit at starting gues
 jumpyness <- 1 # controls random jumping around
@@ -343,7 +343,7 @@ for (i in 2:steps){
 ---
 
 
-# Basics of Bayes
+# Basics of Bayes - MCMC
 
 ```{r, echo = FALSE, message=FALSE}
 trace <- tibble(i = 1:steps, param = param)
@@ -1429,6 +1429,25 @@ The recommended option is to allow your model to take different data for the pos
 As an alternative, I recommend using the `algorithm = "Fixed_param"` option, and applying each draw from your posterior to your mode. 
 
   - See example [here](https://github.com/DanOvando/learn-stan/blob/master/scripts/generate-stan-predictions.R)
+
+---
+
+# Challenges of Bayes
+
+
+Bayesian and Frequentist methods both make assumptions that may be more or less valid in different circumstances
+
+- Can be much slower, especially for large models
+  - But getting much faster
+
+- Setting priors can be tough
+  - Can't set multiple priors on the same thing
+  - Make sure prior in the real world means the same thing as the prior in the small world (see [Choy et al. 2009](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/07-1886.1))
+  
+- Readers may be uncomfortable with it
+  - Where's the regression table? **WHERE ARE THE P-VALUES**
+  - Always clearly present your priors, and include sensitivity analyses
+  
 
 ---
 
