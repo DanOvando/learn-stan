@@ -4,7 +4,6 @@
 .Ruserdata
 documents/_ignore/
 documents/appfiles/
-*.html
 *.pdf
 *.Rproj
 
