@@ -4,7 +4,7 @@
     <title>Getting Started with Stan</title>
     <meta charset="utf-8" />
     <meta name="author" content="Dan Ovando - University of Washington" />
-    <meta name="date" content="2019-10-29" />
+    <meta name="date" content="2020-01-16" />
     <link href="libs/remark-css/default.css" rel="stylesheet" />
     <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
     <script src="libs/htmlwidgets/htmlwidgets.js"></script>
@@ -20,7 +20,7 @@ class: center, middle, inverse, title-slide
 # Getting Started with Stan
 ### Dan Ovando - University of Washington
 ### UCSB eco-data-science Seminar
-### 2019-10-29
+### 2020-01-16
 
 ---
 
@@ -467,8 +467,8 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## 
 ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 0.000559 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.59 seconds.
+## Chain 1: Gradient evaluation took 0.000712 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 7.12 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -477,9 +477,9 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.042133 seconds (Warm-up)
-## Chain 1:                0.132025 seconds (Sampling)
-## Chain 1:                0.174158 seconds (Total)
+## Chain 1:  Elapsed Time: 0.049357 seconds (Warm-up)
+## Chain 1:                0.160443 seconds (Sampling)
+## Chain 1:                0.2098 seconds (Total)
 ## Chain 1:
 ```
 
@@ -1619,8 +1619,8 @@ head(fitted_recruits,2)
 ## # Groups:   year, .variable [1]
 ##    year .chain .iteration .draw .variable        .value
 ##   &lt;int&gt;  &lt;int&gt;      &lt;int&gt; &lt;int&gt; &lt;chr&gt;             &lt;dbl&gt;
-## 1     1      1          1     1 recruits_hat 315699654.
-## 2     1      1          2     2 recruits_hat 309400509.
+## 1     1      1          1     1 recruits_hat 364520786.
+## 2     1      1          2     2 recruits_hat 292616523.
 ```
 
 ---
@@ -1731,7 +1731,8 @@ Online Resources
 <script>var slideshow = remark.create({
 "highlightStyle": "github",
 "highlightLines": true,
-"countIncrementalSlides": false
+"countIncrementalSlides": false,
+"self_contained": true
 });
 if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
   window.dispatchEvent(new Event('resize'));

@@ -11,6 +11,7 @@ output:
       highlightStyle: github
       highlightLines: true
       countIncrementalSlides: false
+      self_contained: true
 ---
 
 ```{r setup, include=FALSE}
