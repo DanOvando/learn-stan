@@ -7,7 +7,7 @@ output:
   xaringan::moon_reader:
     css: ["default","default-fonts","my-theme.css"]
     lib_dir: libs
-    self_contained: TRUE
+    self_contained: FALSE
     nature:
       highlightStyle: github
       highlightLines: true

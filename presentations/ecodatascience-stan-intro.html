@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<html lang="" xml:lang="">
   <head>
     <title>Getting Started with Stan</title>
     <meta charset="utf-8" />
     <meta name="author" content="Dan Ovando - University of Washington" />
-    <meta name="date" content="2020-01-16" />
+    <meta name="date" content="2020-07-10" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
     <link href="libs/remark-css/default.css" rel="stylesheet" />
     <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
     <script src="libs/htmlwidgets/htmlwidgets.js"></script>
@@ -20,7 +21,7 @@ class: center, middle, inverse, title-slide
 # Getting Started with Stan
 ### Dan Ovando - University of Washington
 ### UCSB eco-data-science Seminar
-### 2020-01-16
+### 2020-07-10
 
 ---
 
@@ -467,8 +468,8 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## 
 ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 5.9e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.59 seconds.
+## Chain 1: Gradient evaluation took 5.4e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.54 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -477,9 +478,9 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.039108 seconds (Warm-up)
-## Chain 1:                0.12699 seconds (Sampling)
-## Chain 1:                0.166098 seconds (Total)
+## Chain 1:  Elapsed Time: 0.02521 seconds (Warm-up)
+## Chain 1:                0.125336 seconds (Sampling)
+## Chain 1:                0.150546 seconds (Total)
 ## Chain 1:
 ```
 
@@ -971,7 +972,7 @@ For `rstanarm` models, a lot of the standard methods for getting summary results
 
 
 ```r
-lifexp_model %&gt;% broom::tidy()
+lifexp_model %&gt;% broom.mixed::tidy()
 ```
 
 ```
@@ -1300,7 +1301,7 @@ loo::loo_compare(loo(model_a), loo(model_b))
 ```
 ##         elpd_diff se_diff
 ## model_b    0.0       0.0 
-## model_a -116.1      18.1
+## model_a -116.0      18.1
 ```
 
 
@@ -1547,7 +1548,7 @@ bh_fit &lt;- rstan::stan(
               n = length(flound$ssb)),
   init = inits,
   chains = chains,
-  cores = chains, 
+  cores = 1, 
   iter = 10000,
   refresh = 0
 )
@@ -1619,8 +1620,8 @@ head(fitted_recruits,2)
 ## # Groups:   year, .variable [1]
 ##    year .chain .iteration .draw .variable        .value
 ##   &lt;int&gt;  &lt;int&gt;      &lt;int&gt; &lt;int&gt; &lt;chr&gt;             &lt;dbl&gt;
-## 1     1      1          1     1 recruits_hat 364520786.
-## 2     1      1          2     2 recruits_hat 292616523.
+## 1     1      1          1     1 recruits_hat 278641507.
+## 2     1      1          2     2 recruits_hat 248697905.
 ```
 
 ---
@@ -1638,6 +1639,10 @@ fitted_recruits &lt;-  fitted_recruits %&gt;%
             upper = quantile(.value, 0.9)) %&gt;% 
   ungroup() %&gt;% 
   mutate(year = year + min(flound$year) - 1)
+```
+
+```
+## `summarise()` regrouping output by 'year' (override with `.groups` argument)
 ```
 
 ---
@@ -1725,6 +1730,10 @@ Online Resources
 - [My tutorial](https://www.weirdfishes.blog/blog/fitting-bayesian-models-with-stan-and-r/)
 
 ---
+
+
+
+
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
@@ -1772,6 +1781,32 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
     deleted = true;
   });
 })();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
 // adds .remark-code-has-line-highlighted class to <pre> parent elements
 // of code chunks containing highlighted lines with class .remark-code-line-highlighted
 (function(d) {
@@ -1789,17 +1824,6 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
   }
   preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
 })(document);</script>
-
-<script>
-(function() {
-  var links = document.getElementsByTagName('a');
-  for (var i = 0; i < links.length; i++) {
-    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
-      links[i].target = '_blank';
-    }
-  }
-})();
-</script>
 
 <script>
 slideshow._releaseMath = function(el) {
