@@ -58,7 +58,6 @@ log_s0 ~ normal(15,2);
 log_r0 ~ normal(8,2);
 
 h ~ beta(6,2);
-
 }
 
 generated quantities{
@@ -70,5 +69,4 @@ generated quantities{
   }
 
 }
-
 

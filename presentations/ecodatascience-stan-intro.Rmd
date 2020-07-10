@@ -7,11 +7,11 @@ output:
   xaringan::moon_reader:
     css: ["default","default-fonts","my-theme.css"]
     lib_dir: libs
+    self_contained: TRUE
     nature:
       highlightStyle: github
       highlightLines: true
       countIncrementalSlides: false
-      self_contained: true
 ---
 
 ```{r setup, include=FALSE}
@@ -19,6 +19,7 @@ options(htmltools.dir.version = FALSE)
 knitr::opts_chunk$set(echo = TRUE, dev = "svg", fig.height = 4, fig.align = "center")
 
 library(tidyverse)
+library(broom.mixed)
 library(rstan)
 library(rstanarm)
 library(bayesplot)
@@ -820,7 +821,7 @@ Similar to the diagnostics, these apply to any kind of stan model.
 For `rstanarm` models, a lot of the standard methods for getting summary results from regressions work (e.g. `broom::tidy()`)
 
 ```{r}
-lifexp_model %>% broom::tidy()
+lifexp_model %>% broom.mixed::tidy()
 ```
 
 I'm not going to focus on those here. Instead we're going to look at methods for extracting and visualizing results from any stan model. 
@@ -1321,7 +1322,7 @@ bh_fit <- rstan::stan(
               n = length(flound$ssb)),
   init = inits,
   chains = chains,
-  cores = chains, 
+  cores = 1, 
   iter = 10000,
   refresh = 0
 )
