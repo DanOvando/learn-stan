@@ -19,6 +19,7 @@ options(htmltools.dir.version = FALSE)
 knitr::opts_chunk$set(echo = TRUE, dev = "svg", fig.height = 4, fig.align = "center")
 
 library(tidyverse)
+library(broom.mixed)
 library(rstan)
 library(rstanarm)
 library(bayesplot)
@@ -601,7 +602,7 @@ see `rstanarm::priors`
 
 ```{r}
 
-lifexp_model  <-
+lifexp_model <-
   stan_glm(
     log(lifeExp) ~ log(gdpPercap),
     data = gapminder,
@@ -620,7 +621,7 @@ lifexp_model  <-
 
 Suppose I have a firm belief GDP is completely uncorrelated with life expectancy.
 ```{r}
-sp_lifexp_model  <-
+sp_lifexp_model <-
   stan_glm(
     log(lifeExp) ~ log(gdpPercap),
     data = gapminder,
@@ -817,10 +818,10 @@ Similar to the diagnostics, these apply to any kind of stan model.
 
 # Where are my results??
 
-For `rstanarm` models, a lot of the standard methods for getting summary results from regressions work (e.g. `broom::tidy()`)
+For `rstanarm` models, a lot of the standard methods for getting summary results from regressions work (e.g. `broom.mixed::tidy()`)
 
 ```{r}
-lifexp_model %>% broom::tidy()
+lifexp_model %>% broom.mixed::tidy()
 ```
 
 I'm not going to focus on those here. Instead we're going to look at methods for extracting and visualizing results from any stan model. 
