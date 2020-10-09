@@ -7,13 +7,15 @@ output:
   xaringan::moon_reader:
     lib_dir: libs
     nature:
-      highlightStyle: github
+      highlightStyle: dark
       highlightLines: true
       countIncrementalSlides: false
 ---
 
 ```{r setup, include=FALSE}
+
 options(htmltools.dir.version = FALSE)
+
 knitr::opts_chunk$set(echo = TRUE, dev = "svg", fig.height = 4, fig.align = "center")
 
 library(tidyverse)
