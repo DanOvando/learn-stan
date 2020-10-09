@@ -468,8 +468,8 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## 
 ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 5.4e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.54 seconds.
+## Chain 1: Gradient evaluation took 8.3e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.83 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -478,9 +478,9 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.02521 seconds (Warm-up)
-## Chain 1:                0.125336 seconds (Sampling)
-## Chain 1:                0.150546 seconds (Total)
+## Chain 1:  Elapsed Time: 0.026755 seconds (Warm-up)
+## Chain 1:                0.117481 seconds (Sampling)
+## Chain 1:                0.144236 seconds (Total)
 ## Chain 1:
 ```
 
@@ -1554,6 +1554,30 @@ bh_fit &lt;- rstan::stan(
 )
 ```
 
+```
+## Running /Library/Frameworks/R.framework/Resources/bin/R CMD SHLIB foo.c
+## clang -mmacosx-version-min=10.13 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG   -I"/Library/Frameworks/R.framework/Versions/4.0/Resources/library/Rcpp/include/"  -I"/Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppEigen/include/"  -I"/Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppEigen/include/unsupported"  -I"/Library/Frameworks/R.framework/Versions/4.0/Resources/library/BH/include" -I"/Library/Frameworks/R.framework/Versions/4.0/Resources/library/StanHeaders/include/src/"  -I"/Library/Frameworks/R.framework/Versions/4.0/Resources/library/StanHeaders/include/"  -I"/Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppParallel/include/"  -I"/Library/Frameworks/R.framework/Versions/4.0/Resources/library/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DBOOST_NO_AUTO_PTR  -include '/Library/Frameworks/R.framework/Versions/4.0/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include   -fPIC  -Wall -g -O2  -c foo.c -o foo.o
+## In file included from &lt;built-in&gt;:1:
+## In file included from /Library/Frameworks/R.framework/Versions/4.0/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
+## In file included from /Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppEigen/include/Eigen/Dense:1:
+## In file included from /Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppEigen/include/Eigen/Core:88:
+## /Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:613:1: error: unknown type name 'namespace'
+## namespace Eigen {
+## ^
+## /Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:613:16: error: expected ';' after top level declarator
+## namespace Eigen {
+##                ^
+##                ;
+## In file included from &lt;built-in&gt;:1:
+## In file included from /Library/Frameworks/R.framework/Versions/4.0/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
+## In file included from /Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppEigen/include/Eigen/Dense:1:
+## /Library/Frameworks/R.framework/Versions/4.0/Resources/library/RcppEigen/include/Eigen/Core:96:10: fatal error: 'complex' file not found
+## #include &lt;complex&gt;
+##          ^~~~~~~~~
+## 3 errors generated.
+## make: *** [foo.o] Error 1
+```
+
 ---
 
 
@@ -1620,8 +1644,8 @@ head(fitted_recruits,2)
 ## # Groups:   year, .variable [1]
 ##    year .chain .iteration .draw .variable        .value
 ##   &lt;int&gt;  &lt;int&gt;      &lt;int&gt; &lt;int&gt; &lt;chr&gt;             &lt;dbl&gt;
-## 1     1      1          1     1 recruits_hat 278641507.
-## 2     1      1          2     2 recruits_hat 248697905.
+## 1     1      1          1     1 recruits_hat 280641868.
+## 2     1      1          2     2 recruits_hat 329890065.
 ```
 
 ---
