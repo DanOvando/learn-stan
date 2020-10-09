@@ -5,9 +5,7 @@ institute: "UCSB eco-data-science Seminar"
 date: "`r Sys.Date()`"
 output:
   xaringan::moon_reader:
-    css: ["default","default-fonts","my-theme.css"]
     lib_dir: libs
-    self_contained: FALSE
     nature:
       highlightStyle: github
       highlightLines: true
@@ -380,9 +378,9 @@ Stan uses a very elegant method called Hamiltonian Monte Carlo with a No-U-turn 
 
 We don't have time to go into it, but trust me, it's cool. See [Monnahan et al. 2018](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12681)
 
-```{r, echo = FALSE, out.height=250}
+```{r, echo = FALSE, out.width="50%"}
 
-knitr::include_graphics(here::here("presentations","imgs","hmc.png"))
+knitr::include_graphics("https://besjournals.onlinelibrary.wiley.com/cms/asset/5ae32b4d-686e-4ea2-9d8a-402aba0a02fe/mee312681-fig-0003-m.jpg")
 ```
 
 ---
