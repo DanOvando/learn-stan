@@ -171,7 +171,7 @@ $$y_i \sim normal(\beta{x_i},\sigma)$$
 
 This means that the likelihood ( P(data|model)) can be calculated as
 
-$$\frac{1}{\sqrt{2{\pi}\sigma^2}}e^{-\frac{{(\beta}x_i - y)^2}{2\sigma^2}}$$
+$$\frac{1}{\sqrt{2{\pi}\sigma^2}}e^{-\frac{(\beta{x_i} - y)^2}{2\sigma^2}}$$
 
 Or for those of you that prefer to speak code
 
