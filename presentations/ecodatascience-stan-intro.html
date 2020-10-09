@@ -467,8 +467,8 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## 
 ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 8.3e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.83 seconds.
+## Chain 1: Gradient evaluation took 7.5e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.75 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -477,9 +477,9 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.04023 seconds (Warm-up)
-## Chain 1:                0.131318 seconds (Sampling)
-## Chain 1:                0.171548 seconds (Total)
+## Chain 1:  Elapsed Time: 0.03548 seconds (Warm-up)
+## Chain 1:                0.127149 seconds (Sampling)
+## Chain 1:                0.162629 seconds (Total)
 ## Chain 1:
 ```
 
@@ -1298,7 +1298,7 @@ loo::loo_compare(loo(model_a), loo(model_b))
 ```
 ##         elpd_diff se_diff
 ## model_b    0.0       0.0 
-## model_a -116.0      18.1
+## model_a -116.1      18.1
 ```
 
 
@@ -1617,8 +1617,8 @@ head(fitted_recruits,2)
 ## # Groups:   year, .variable [1]
 ##    year .chain .iteration .draw .variable        .value
 ##   &lt;int&gt;  &lt;int&gt;      &lt;int&gt; &lt;int&gt; &lt;chr&gt;             &lt;dbl&gt;
-## 1     1      1          1     1 recruits_hat 278641507.
-## 2     1      1          2     2 recruits_hat 248697905.
+## 1     1      1          1     1 recruits_hat 251789804.
+## 2     1      1          2     2 recruits_hat 282500071.
 ```
 
 ---
@@ -1735,7 +1735,7 @@ Online Resources
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script>var slideshow = remark.create({
-"highlightStyle": "github",
+"highlightStyle": "dark",
 "highlightLines": true,
 "countIncrementalSlides": false
 });
