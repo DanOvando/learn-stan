@@ -26,7 +26,7 @@ Second, please go to Stan's instructions on installing Stan for use with R, whic
 
 Installing Stan can be a bit complicated on some machines, especially if you haven't run programs that require a C++ compiler before (if that sentance doesn't make sense to you, this means you), so **PLEASE DON'T WAIT UNTIL THE MORNING OF THE WORKSHOP TO TRY AND INSTALL STAN**. Try to install it a few days beforehand, and if you can't get it to work let me know and I'll try to help. 
 
-To check that it works, once you've succesfully done all the other steps please open R and run the code below. If it works, you're good to go!
+To check that it works, once you've successfully done all the other steps please open R and run the code below. If it works, you're good to go!
 
 ```
 library(rstan)
