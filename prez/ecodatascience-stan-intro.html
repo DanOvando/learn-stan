@@ -79,13 +79,14 @@ $$p(model|data) = \frac{p(data|model) \times p(model)}{p(data)} $$
 `$$prob(thing|data) \propto prob(data|thing)prob(thing)$$`
 
 
-![](/Users/danovan/projects/learn-stan/prez/imgs/bridge.png)
+&lt;img src="https://imgs.xkcd.com/comics/bridge.png " width="70%" style="display: block; margin: auto;" /&gt;
+
 
 `$$prob(crazy|jumping) \propto prob(jumping|crazy)prob(crazy)$$`
 
 .center[if `\(friends = CRAZY\)`, then stay on bridge and eat cookies!]
 
-.small[[xkcd](https://xkcd.com/1170/)]
+.small[[xkcd](https://imgs.xkcd.com/comics/bridge.png)]
 
 ---
 
@@ -332,7 +333,7 @@ for (i in 2:steps){
 
 # Basics of Bayes - MCMC
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-5-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-6-1.svg" style="display: block; margin: auto;" /&gt;
 
 
 
@@ -448,7 +449,7 @@ We're doing to play with the `gapminder` dataset
 Let's start with a simple model: predict log(life expectancy) as a function of log(gdp)
 
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-8-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-9-1.svg" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -477,9 +478,9 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.034749 seconds (Warm-up)
-## Chain 1:                0.127261 seconds (Sampling)
-## Chain 1:                0.16201 seconds (Total)
+## Chain 1:  Elapsed Time: 0.034038 seconds (Warm-up)
+## Chain 1:                0.12411 seconds (Sampling)
+## Chain 1:                0.158148 seconds (Total)
 ## Chain 1:
 ```
 
@@ -731,7 +732,7 @@ sp_lifexp_model  &lt;-
     labs(title = "Strong Prior")
 ```
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-16-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-17-1.svg" style="display: block; margin: auto;" /&gt;
   
   
 ].pull-right[
@@ -744,7 +745,7 @@ sp_lifexp_model  &lt;-
     labs(title = "Weak Prior")
 ```
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-17-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-18-1.svg" style="display: block; margin: auto;" /&gt;
   
   
 ]
@@ -1122,7 +1123,7 @@ tidybayes::gather_draws(lifexp_model,`(Intercept)`,`log(gdpPercap)`) %&gt;%
   theme(legend.position = "top")
 ```
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-25-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-26-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1136,7 +1137,7 @@ bayesplot::mcmc_areas(as.matrix(lifexp_model),
            prob = 0.8) 
 ```
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-26-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-27-1.svg" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1260,7 +1261,7 @@ head(continent_delta,5)
 # Statistical Tests with Stan
 
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-32-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-33-1.svg" style="display: block; margin: auto;" /&gt;
 
 ???
 We basically just replaced that crazy flowchart of statistical tests with the `tidyverse`
@@ -1395,7 +1396,7 @@ x = 2 + 2;
 
 # The Data
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-36-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-37-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1425,7 +1426,7 @@ We're going to fit a simple Beverton-Holt Spawner-Recruit model to these data.
 `$$recruits \sim logn(\frac{(0.8 \times r0 \times h \times s)}{ (0.2 \times s0 \times (1 - h) +(h - 0.2) \times s)},\sigma)$$`
 
   
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-38-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-39-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1650,7 +1651,7 @@ And now plot!
 
 Why is the posterior predictive so much wider than the mean prediction?
 
-&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-48-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="ecodatascience-stan-intro_files/figure-html/unnamed-chunk-49-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 

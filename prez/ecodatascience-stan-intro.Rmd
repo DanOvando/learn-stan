@@ -89,13 +89,16 @@ $$p(model|data) = \frac{p(data|model) \times p(model)}{p(data)} $$
 $$prob(thing|data) \propto prob(data|thing)prob(thing)$$
 
 
-![](`r here::here("prez","imgs","bridge.png")`)
+```{r, out.width="70%", echo = FALSE}
+knitr::include_graphics("https://imgs.xkcd.com/comics/bridge.png ")
+```
+
 
 $$prob(crazy|jumping) \propto prob(jumping|crazy)prob(crazy)$$
 
 .center[if $friends = CRAZY$, then stay on bridge and eat cookies!]
 
-.small[[xkcd](https://xkcd.com/1170/)]
+.small[[xkcd](https://imgs.xkcd.com/comics/bridge.png)]
 
 ---
 
