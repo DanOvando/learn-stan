@@ -4,7 +4,7 @@
     <title>Getting Started with Stan</title>
     <meta charset="utf-8" />
     <meta name="author" content="Dan Ovando - University of Washington" />
-    <meta name="date" content="2020-10-21" />
+    <meta name="date" content="2020-10-24" />
     <script src="libs/header-attrs/header-attrs.js"></script>
     <link href="libs/remark-css/default.css" rel="stylesheet" />
     <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
@@ -20,7 +20,7 @@ class: center, middle, inverse, title-slide
 # Getting Started with Stan
 ### Dan Ovando - University of Washington
 ### UCSB eco-data-science Seminar
-### 2020-10-21
+### 2020-10-24
 
 ---
 
@@ -468,8 +468,8 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## 
 ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 7.5e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.75 seconds.
+## Chain 1: Gradient evaluation took 0.000738 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 7.38 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -478,9 +478,9 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.034038 seconds (Warm-up)
-## Chain 1:                0.12411 seconds (Sampling)
-## Chain 1:                0.158148 seconds (Total)
+## Chain 1:  Elapsed Time: 0.046439 seconds (Warm-up)
+## Chain 1:                0.182774 seconds (Sampling)
+## Chain 1:                0.229213 seconds (Total)
 ## Chain 1:
 ```
 
