@@ -1,5 +1,5 @@
 ---
-title: "A Practical Introduction to STAN"
+title: "A Practical Introduction to Stan"
 author: "Dan Ovando"
 date: "12/27/2017"
 output: 
@@ -409,13 +409,13 @@ sigma <- 0.5
  x <- -1:200
 
 data <- list(y = x * beta + rnorm(length(x), 0, sigma), n = length(x), x = x,
-             z = x, g = x)
+             z = x,p = 2,ind = c(1,3), g = x)
 
 plot(x,data$y)
 
-scratch <- stan(file = here::here('scripts', 'scratch.stan'),
-                iter = 2000, 
-                warmup = 1000,
+scratch <- stan(file = here::here('src', 'scratch.stan'),
+                iter = 2, 
+                warmup = 1,
                 data = data)
 
 plot(scratch)
@@ -471,7 +471,7 @@ data_frame(ssb = 0:1000) %>%
 The problem here is that $\beta$ is obviously very specific to each species, making it difficult to really say much about the resilience of a species based on that parameter. To that end @Mace1988 provided a reparameterization of thd BH equation using a term called "steepness" (*h*), which is more or less the slope of the stock-recruitment when SSB is 20% of max (i.e. unfished) SSB. This allows for species with vastly different stock sizes to be compared in terms of their steepness, with species with higher values of steepness being more resilient to fishing than those with lower steepness
 
 
-$$ \frac{0.8(\alpha){(h){{SSB}}}}{0.2 (\alpha)(1 - h) + (h - 0.2)SSB}$$
+$$ \frac{0.8 \times \alpha \times h \times SSB}{0.2 \times \alpha(1 - h) + (h - 0.2) \times SSB}$$
 
 ```{r}
 
@@ -564,7 +564,7 @@ Easiest way to think about the log normal distribution is a normal distribution 
 
 ## Write our Stan Model
 
-Now that we know what we need to model, we just have to code it. We'll work step by step through this process now over in "scripts/bh_model.stan". 
+Now that we know what we need to model, we just have to code it. We'll work step by step through this process now over in "src/bh_model.stan". 
 
 ...
 
@@ -605,7 +605,7 @@ data <- list(n = nrow(sal_data),
                max_r = max(sal_data$r)
              )
 
-bh_fit <- stan(file = here::here("scripts","bh_model.stan"),
+bh_fit <- stan(file = here::here("src","bh_model.stan"),
                  data = data,
                  chains = n_chains,
                  warmup = warmups,
@@ -993,7 +993,7 @@ data <- list(
   rec_par_cv = c(0.5, 0.5)
   )
 
-ricker_fit <- stan(file = here::here("src","bh_model.stan"),
+ricker_fit <- stan(file = here::here("src","generic_stock_recruit.stan"),
                  data = data,
                  chains = 4,
                  warmup = warmups,
@@ -1033,7 +1033,7 @@ data <- list(
   rec_par_cv = array(0.5, dim = 1)
   )
 
-bh_fit <- stan(file = here::here("scripts","generic_stock_recruit.stan"),
+bh_fit <- stan(file = here::here("src","generic_stock_recruit.stan"),
                  data = data,
                  chains = 4,
                  warmup = warmups,
@@ -1265,7 +1265,7 @@ initials <-
   )
 
 hake_fit <- stan(
-  file = here::here("scripts","schaefer.stan"),
+  file = here::here("src","schaefer.stan"),
   data = hake_data,
   chains = n_chains,
   warmup = warmups,
@@ -1442,7 +1442,7 @@ initials <-
   )
 
 ss_hake_fit <- stan(
-  file = here::here("scripts","ss_schaefer.stan"),
+  file = here::here("src","ss_schaefer.stan"),
   data = hake_data,
   chains = n_chains,
   warmup = warmups,

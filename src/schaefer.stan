@@ -25,21 +25,11 @@ parameters{
 
   real log_k; //carrying capacity
 
-  // real<lower=1, upper=5000> iq;
-
-  // real<lower=1, upper=100000> iq;
-
   real <lower = 0, upper = 0.5> q;
 
   real<lower = 0> sigma_observation; // observation error
 
   vector<lower=0, upper=0.8>[n_years]  u; //  fishing mortality
-
-  // vector<lower=2, upper=500>[n_years]  iu; //  process deviations
-
-  real<lower = 0> sigma_harvest; // observation error
-
-  // real<lower = 0> sigma_u; // observation error
 
 
 }
@@ -119,7 +109,7 @@ model{
 
   log_index ~ normal(log_index_hat, sigma_observation);
 
-  harvest ~ normal(harvest_hat, sigma_harvest);
+  log(harvest) ~ normal(log(harvest_hat), 1e-3);
 
   log_k ~ uniform(log(2000),log(8000));
 
@@ -127,7 +117,7 @@ model{
 
   sigma_observation ~ normal(0,2);
 
-  sigma_harvest ~ normal(0,2);
+  // sigma_harvest ~ normal(0,2);
 
   // sigma_u ~ normal(0,1);
 

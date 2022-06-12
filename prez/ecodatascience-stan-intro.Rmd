@@ -391,6 +391,59 @@ knitr::include_graphics("https://besjournals.onlinelibrary.wiley.com/cms/asset/5
 ---
 
 
+# Why Stan?
+
+.pull-left[
+
+- There are lots of Bayesian software options out there
+  - BUGs, JAGS, NIMBLE, greta, probably something cool in Julia. 
+
+- Stan is my personal favorite for a few reasons
+  - Blazing fast. 
+  - Amazing documentation and community
+  - Robust diagnostic tools
+  - Good enough for Gelman
+
+The Bayesian standard in social sciences, medicine etc. 
+
+Modern Bayesian textbooks build around it
+
+
+
+] .pull-right[
+
+![](https://besjournals.onlinelibrary.wiley.com/cms/asset/d0c113e4-43d7-4f1e-8b8a-f48a8cf54ce6/mee312681-fig-0001-m.jpg)
+]
+
+
+---
+
+# Why Stan?
+
+![](https://besjournals.onlinelibrary.wiley.com/cms/asset/6d13eaf0-e808-4db9-a274-65bc94ac4a88/mee312681-fig-0004-m.jpg)
+
+---
+
+# Why Stan?
+
+.pull-left[
+FYI, it's named after a person,  [Stanislaw Ulam](https://en.wikipedia.org/wiki/Stanislaw_Ulam), so it's "Stan", not "stan","STAN", "S.T.A.N."
+
+Cons... 
+
+  - No easy way for discrete latent parameters (maybe coming? maybe in `cmdstan`)
+  - ?
+
+
+
+] .pull-right[
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Stanislaw_Ulam.tif/lossy-page1-800px-Stanislaw_Ulam.tif.jpg)
+]
+
+
+---
+
 class: center, middle, inverse
 # Bayesian regression with `rstanarm`
 
@@ -605,7 +658,7 @@ see `rstanarm::priors`
 
 ```{r}
 
-lifexp_model  <-
+lifexp_model <-
   stan_glm(
     log(lifeExp) ~ log(gdpPercap),
     data = gapminder,
@@ -624,7 +677,7 @@ lifexp_model  <-
 
 Suppose I have a firm belief GDP is completely uncorrelated with life expectancy.
 ```{r}
-sp_lifexp_model  <-
+sp_lifexp_model <-
   stan_glm(
     log(lifeExp) ~ log(gdpPercap),
     data = gapminder,
@@ -1078,7 +1131,8 @@ Hopefully you've also seen that Bayesian models can make statistical inference M
 Lots of times though, we want to move beyond linear regression. Bayesian estimation through HMC is particularly good at estimating really complex models. 
 
 For that, you may need to write your own stan code
-  - [brms](https://paul-buerkner.github.io/brms/) is a great package for writing non-linear models in stan without writing the stan code. Not going to cover here
+  - [brms](https://paul-buerkner.github.io/brms/) is a great package for writing non-linear models in stan without writing the stan code. 
+  - Not going to cover here: I recommend learning the real deal for complex problems
   
   
 ---
@@ -1190,7 +1244,7 @@ vector[n] recruits; // vector of recruits
 
 We're going to fit a simple Beverton-Holt Spawner-Recruit model to these data. 
 
-$$recruits \sim logn(\frac{(0.8 \times r0 \times h \times s)}{ (0.2 \times s0 \times (1 - h) +(h - 0.2) \times s)},\sigma)$$
+$$log(recruits) \sim N\left(\frac{(0.8 \times r0 \times h \times s)}{ (0.2 \times s0 \times (1 - h) +(h - 0.2) \times s)},\sigma\right)$$
 
   
 ```{r, echo = FALSE}
@@ -1449,6 +1503,9 @@ Bayesian and Frequentist methods both make assumptions that may be more or less 
   - Can't set multiple priors on the same thing
   - Make sure prior in the real world means the same thing as the prior in the small world (see [Choy et al. 2009](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/07-1886.1))
   
+- Can be abused...
+  - No more significance so anything goes!
+  - With strong enough priors anything is estimable... 
 - Readers may be uncomfortable with it
   - Where's the regression table? **WHERE ARE THE P-VALUES**
   - Always clearly present your priors, and include sensitivity analyses

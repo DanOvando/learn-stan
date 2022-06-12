@@ -2,12 +2,17 @@ data{
 
 int n; // the number of observations
 
+int p;
+
 vector[n] y; //
 
 vector[n] x;
 
 real z[n];
 
+int ind[p];
+
+//array[p] int ind;
 
 }
 parameters{
@@ -28,9 +33,10 @@ int CC;
 //
  CC = 10;
 
+print(y[ind]);
+
 for (i in 1:10){
 
-// print(test[i])
 
 }
 
