@@ -59,6 +59,11 @@ theme_set(pres_theme)
 
 ---
 
+class: center, middle, inverse
+
+### follow along at [danovando.github.io/learn-stan/slides](https://danovando.github.io/learn-stan/slides)
+---
+
 # Objectives for Workshop
 
 <br>
@@ -751,7 +756,8 @@ library(palmerpenguins)
 penguins %>% 
   ggplot(aes(body_mass_g, fill = sex)) + 
   geom_density(alpha= 0.75) + 
-    facet_wrap(~species)
+    facet_wrap(~species) + 
+  theme_minimal()
 
   
 ```
@@ -1005,11 +1011,14 @@ tidybayes::gather_draws(lifexp_model,`(Intercept)`,`log(gdpPercap)`) %>%
 
 # [`tidybayes`](https://github.com/mjskay/tidybayes) & [`ggdist`](https://mjskay.github.io/ggdist/) 
 
-XX fix this.
+Lots of examples, explore on your own. 
 ```{r}
-bayesplot::mcmc_areas(as.matrix(lifexp_model),
-                      pars = c("log(gdpPercap)","sigma"),
-           prob = 0.8) 
+lifexp_model %>% 
+  as.data.frame() %>% 
+  ggplot(aes(`log(gdpPercap)`)) + 
+  stat_halfeye()
+
+
 ```
 
 
@@ -1702,9 +1711,8 @@ Often in environmental problems we need to fit our model to one set of data, and
 This is pretty easy using `rstanarm` and `brms`, but a bit more challenging using `stan`. 
 
 The recommended option is to allow your model to take different data for the posterior predictive than the fitting data
-  - This can be time consuming
-  
-As an alternative, I recommend using the `algorithm = "Fixed_param"` option, and applying each draw from your posterior to your mode. 
+
+As an alternative, you can use the `algorithm = "Fixed_param"` option, and apply each draw from your posterior to your model. 
 
   - See example [here](https://github.com/DanOvando/learn-stan/blob/master/scripts/generate-stan-predictions.R)
 

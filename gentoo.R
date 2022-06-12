@@ -11,9 +11,9 @@ model <- rstanarm::stan_glm(body_mass_g ~ species, data = penguins)
 summary(model)
 
 
-gentoo <- as.data.frame(model)
+gentoo <- as.data.frame(model) %>% 
+  as_tibble()
 
-spread_draws(model$stanfit)
 
 gentoo %>% 
   ggplot(aes(speciesGentoo)) + 

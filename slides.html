@@ -50,6 +50,11 @@ class: center, middle, inverse, title-slide
 
 ---
 
+class: center, middle, inverse
+
+### follow along at [danovando.github.io/learn-stan/slides](https://danovando.github.io/learn-stan/slides)
+---
+
 # Objectives for Workshop
 
 &lt;br&gt;
@@ -531,8 +536,8 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## 
 ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 0.000123 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 1.23 seconds.
+## Chain 1: Gradient evaluation took 9.9e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.99 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -541,9 +546,9 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.082776 seconds (Warm-up)
-## Chain 1:                0.231682 seconds (Sampling)
-## Chain 1:                0.314458 seconds (Total)
+## Chain 1:  Elapsed Time: 0.063808 seconds (Warm-up)
+## Chain 1:                0.148891 seconds (Sampling)
+## Chain 1:                0.212699 seconds (Total)
 ## Chain 1:
 ```
 
@@ -1237,12 +1242,13 @@ tidybayes::gather_draws(lifexp_model,`(Intercept)`,`log(gdpPercap)`) %&gt;%
 
 # [`tidybayes`](https://github.com/mjskay/tidybayes) &amp; [`ggdist`](https://mjskay.github.io/ggdist/) 
 
-XX fix this.
+Lots of examples, explore on your own. 
 
 ```r
-bayesplot::mcmc_areas(as.matrix(lifexp_model),
-                      pars = c("log(gdpPercap)","sigma"),
-           prob = 0.8) 
+lifexp_model %&gt;% 
+  as.data.frame() %&gt;% 
+  ggplot(aes(`log(gdpPercap)`)) + 
+  stat_halfeye()
 ```
 
 &lt;img src="slides_files/figure-html/unnamed-chunk-29-1.svg" style="display: block; margin: auto;" /&gt;
@@ -1794,6 +1800,30 @@ bh_fit &lt;- rstan::stan(
 )
 ```
 
+```
+## Running /Library/Frameworks/R.framework/Resources/bin/R CMD SHLIB foo.c
+## clang -mmacosx-version-min=10.13 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG   -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/Rcpp/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/unsupported"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/BH/include" -I"/Users/danovan/projects/learn-stan/renv/library/R-4.1/x86_64-apple-darwin17.0/StanHeaders/include/src/"  -I"/Users/danovan/projects/learn-stan/renv/library/R-4.1/x86_64-apple-darwin17.0/StanHeaders/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppParallel/include/"  -I"/Users/danovan/projects/learn-stan/renv/library/R-4.1/x86_64-apple-darwin17.0/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DUSE_STANC3 -DSTRICT_R_HEADERS  -DBOOST_PHOENIX_NO_VARIADIC_EXPRESSION  -DBOOST_NO_AUTO_PTR  -include '/Users/danovan/projects/learn-stan/renv/library/R-4.1/x86_64-apple-darwin17.0/StanHeaders/include/stan/math/prim/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include   -fPIC  -Wall -g -O2  -c foo.c -o foo.o
+## In file included from &lt;built-in&gt;:1:
+## In file included from /Users/danovan/projects/learn-stan/renv/library/R-4.1/x86_64-apple-darwin17.0/StanHeaders/include/stan/math/prim/fun/Eigen.hpp:22:
+## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:88:
+## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:1: error: unknown type name 'namespace'
+## namespace Eigen {
+## ^
+## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:16: error: expected ';' after top level declarator
+## namespace Eigen {
+##                ^
+##                ;
+## In file included from &lt;built-in&gt;:1:
+## In file included from /Users/danovan/projects/learn-stan/renv/library/R-4.1/x86_64-apple-darwin17.0/StanHeaders/include/stan/math/prim/fun/Eigen.hpp:22:
+## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:96:10: fatal error: 'complex' file not found
+## #include &lt;complex&gt;
+##          ^~~~~~~~~
+## 3 errors generated.
+## make: *** [foo.o] Error 1
+```
+
 ---
 
 # Some weird things in passing data
@@ -1902,8 +1932,8 @@ head(fitted_recruits,2)
 ## # Groups:   year, .variable [1]
 ##    year .chain .iteration .draw .variable        .value
 ##   &lt;int&gt;  &lt;int&gt;      &lt;int&gt; &lt;int&gt; &lt;chr&gt;             &lt;dbl&gt;
-## 1     1      1          1     1 recruits_hat 283282322.
-## 2     1      1          2     2 recruits_hat 293221845.
+## 1     1      1          1     1 recruits_hat 280719621.
+## 2     1      1          2     2 recruits_hat 276606035.
 ```
 
 ---
@@ -1959,9 +1989,8 @@ Often in environmental problems we need to fit our model to one set of data, and
 This is pretty easy using `rstanarm` and `brms`, but a bit more challenging using `stan`. 
 
 The recommended option is to allow your model to take different data for the posterior predictive than the fitting data
-  - This can be time consuming
-  
-As an alternative, I recommend using the `algorithm = "Fixed_param"` option, and applying each draw from your posterior to your mode. 
+
+As an alternative, you can use the `algorithm = "Fixed_param"` option, and apply each draw from your posterior to your model. 
 
   - See example [here](https://github.com/DanOvando/learn-stan/blob/master/scripts/generate-stan-predictions.R)
 
