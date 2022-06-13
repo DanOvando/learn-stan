@@ -1,0 +1,32 @@
+.title-slide {
+  background-image: url(imgs/title2.jpeg);
+  background-size: cover;
+  vertical-align: bottom !important; 
+  text-align: left !important;
+}
+.title-slide .remark-slide-number {
+  display: none;
+}
+
+.remark-slide-number {
+  color: #4b2e83; /* UW purple */
+}
+
+.large { font-size: 130% }
+
+.small { font-size: 70% }
+
+h1 {
+  color: #4b2e83; /* UW purple */
+}
+h2 {
+  color: #4b2e83; /* UW purple */
+}
+h3 {
+  color: #4b2e83; /* UW purple */
+}
+h4 {
+  color: #4b2e83; /* UW purple */
+}
+
+

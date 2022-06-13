@@ -6,6 +6,7 @@ output:
   xaringan::moon_reader:
     lib_dir: libs
     self_contained: false
+    css: [default-fonts,default, my-theme.css]
     seal: true
     nature:
       highlightStyle: github
@@ -19,8 +20,21 @@ output:
 
 options(htmltools.dir.version = FALSE)
 
-knitr::opts_chunk$set(echo = TRUE, dev = "svg", fig.height = 4, fig.align = "center")
+knitr::opts_chunk$set(echo = TRUE, dev = "svg", fig.height = 4, fig.align = "center", message = FALSE, warning = FALSE)
+```
 
+
+```{r xaringan-tile-view, echo=FALSE}
+xaringanExtra::use_tile_view()
+
+
+```
+
+```{r xaringan-scribble, echo=FALSE}
+xaringanExtra::use_scribble()
+```
+
+```{r include = FALSE}
 library(tidyverse)
 library(broom.mixed)
 library(rstan)
@@ -29,10 +43,9 @@ library(bayesplot)
 library(tidybayes)
 library(gapminder)
 library(patchwork)
-library(hrbrthemes)
+library(xaringanExtra)
 
-pres_theme <- theme_ipsum(base_size = 18,
-                          axis_title_size = 20)
+pres_theme <- theme_minimal(base_size = 16) + theme(axis.title = element_text(size = 18))
 
 theme_set(pres_theme)
 
@@ -335,7 +348,7 @@ set.seed(42)
 x <- 1:500 #make up independent data
 true_param <- .5 # true relationship between x and y
 y <- true_param * x # simulate y
-steps <- 1e4 # number of MCMC steps to take
+steps <- 1e5 # number of MCMC steps to take
 param <- rep(0, steps) # vector of parameter values
 old_fit <- log(sum((y - (x * param[1]))^2)) # fit at starting guess
 jumpyness <- 1 # controls random jumping around
@@ -413,7 +426,7 @@ knitr::include_graphics("https://besjournals.onlinelibrary.wiley.com/cms/asset/5
 - Stan is my personal favorite
   - Blazing fast. 
   - Amazing documentation and community
-  - Robust diagnostic tools
+  - Robust & unique diagnostic tools
   - Good enough for Gelman
   - Available in lots of languages
 
@@ -608,7 +621,8 @@ simple_lifexp_model <- rstanarm::stan_glm(
 The # of kept iterations you keep is `iter` - `warmup`
 
   - No need to thin! (though you can)
-  
+  - Only real reason is to reduce memory use of saved models?
+
 Balance between long enough to tune HMC / explore posterior, short enough to be fast. `warmup` defaults to half of `iter`
 
 Sometimes slower is faster: giving stan enough iterations to warmup properly can actually be faster than trying to go with small number of iterations. 
@@ -730,42 +744,8 @@ sp_lifexp_model <-
 
 ---
 
-class: center, inverse, middle
-
-# Exercise
-
----
-
-# Potential Exercise - Penguins!
-
-Using `rstanarm` answer the most pressing scientific question of our time: 
-
-On average, how much chonkier are Gentoo penguins than Adelie penguins? 
-
-For extra fun, what is the probability that Gentoo penguins are on average 1400g heavier than Adelie?
-
-The press awaits your answer (with uncertainty)
-
----
 
 
-# Potential Exercise - Penguins!
-
-```{r, echo = FALSE}
-library(palmerpenguins)
-penguins %>% 
-  ggplot(aes(body_mass_g, fill = sex)) + 
-  geom_density(alpha= 0.75) + 
-    facet_wrap(~species) + 
-  theme_minimal()
-
-  
-```
-
----
-
-
----
 
 # Potential Exercise - Priors
 
@@ -787,12 +767,15 @@ Try out a couple different kinds of priors
 
 This means that all the same diagnostics apply whether you're using `rstan`, `rstanarm`, `brms`, or any of the other Stan packages. 
 
-The problem: things like `lm` will always* "work"
+The problem: things like `lm` will always<sup>1</sup> "work"
 
 Numerical optimizers like HMC have no such guarantee
   * You need to make sure the algorithm has converged
 
 Stan has numerous built-in diagnostics to help you do this. 
+
+.footnote[
+[1] except when it doesn't
 
 ---
 
@@ -952,7 +935,7 @@ I'm not going to focus on those here. Instead we're going to look at methods for
 
 Our simple model has two parameters: `(Intercept)` and `log(gdpPercap)`
 
-Let's pull out the HMC draws for each one
+Let's pull out the HMC draws for each one (note that with `rstanarm` you have to use the stanfit object)
 
 
 ```{r}
@@ -1148,6 +1131,37 @@ continent_delta %>%
 We basically just replaced that crazy flowchart of statistical tests with the `tidyverse`
 ---
 
+# Potential Exercise - Penguins!
+
+Using `rstanarm` answer the most pressing scientific question of our time: 
+
+On average, how much chonkier are Gentoo penguins than Adelie penguins? 
+
+For extra fun, what is the probability that Gentoo penguins are on average 1400g heavier than Adelie?
+
+The press awaits your answer (with uncertainty)
+
+---
+
+
+# Potential Exercise - Penguins!
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+library(palmerpenguins)
+penguins %>% 
+  ggplot(aes(body_mass_g, fill = sex)) + 
+  geom_density(alpha= 0.75) + 
+    facet_wrap(~species) + 
+  theme_minimal()
+
+  
+```
+
+---
+
+
+
+
 # Model Comparison with `loo`
 
 We often use things like AIC to pick between models
@@ -1158,6 +1172,8 @@ We often use things like AIC to pick between models
 Stan has built in functionality for leave-one-out cross validation `loo`
   - Usable on any `stanfit` object 
 
+Lots of options besides `loo`
+  - WAIC, BIC, DIC
 We don't have time to dig into this, but see documentation [here](https://mc-stan.org/loo/)
 
 ---
@@ -1199,7 +1215,7 @@ Hopefully you've also seen that Bayesian models can make statistical inference M
 Lots of times though, we want to move beyond linear regression. Bayesian estimation through HMC is particularly good at estimating really complex models. 
 
 For that, you may need to write your own stan code
-  - [brms](https://paul-buerkner.github.io/brms/) is a great package for writing non-linear models in Stan without writing the stan code. 
+  - [brms](https://paul-buerkner.github.io/brms/) is a great package for writing non-linear models in Stan without writing the Stan code. 
   - Not going to cover here: I recommend learning the real deal for complex problems
   
   
@@ -1258,7 +1274,6 @@ For the most part, most things work like they do in R!
   - e.g. `for`, `if`, `while` work exactly the same
   - `x[1,1:5]` gives the first five columns of the first row of x
   - Things are indexed at 1!
-  - `//` instead of `#` for comments
   
 Major differences
 
@@ -1266,6 +1281,9 @@ Major differences
   
   - You have to explicitly declare types and dimensions
     - This is usually the hardest part for people
+    
+  -  `//` instead of `#` for comments
+
 ---
 
 # Data Types
@@ -1279,6 +1297,7 @@ Most languages are not so forgiving, including Stan
 - Uses strong, static typing
 - You have to explicitly declare variable types (real, integer, logical, etc)
 - You have to explicitly declare their size
+- This and the need to compile seems to be what throws people the most
 
 ---
 
@@ -1565,7 +1584,7 @@ chains <- 4
 
 inits <- list(s0 = max(flound$ssb) * 1.5, r0 = max(flound$recruits), h = 0.7)
 
-inits <- map(1:chains,~ map(inits, jitter,1))
+inits <- lapply(1:chains, function(x) map(inits, jitter,1))
 
 bh_fit <- rstan::stan(
   file = here::here("src","bh_model.stan"),
@@ -1581,6 +1600,42 @@ bh_fit <- rstan::stan(
 ```
 
 ---
+
+# A quick note on `inits`
+
+Stan and HMC seem pretty magic at times, but they are still numerical optimiziers
+  - If you start them close to the right values, things will be easier
+
+You can pass initial parameter values to Stan using the `init` command
+  - By default Stan does some wizardry behind the scenes to come up with good inits
+  
+`init` takes the form of a "list of lists"
+  - One list per chain
+  - Inside each list per chain a list of initial parameter values
+  - Can provide initial values for as few or as many parameters as you want, missing parameters get Stan's defaults
+  - A reason that centering and scaling thing can be helpful
+
+---
+
+# A quick note on `inits`
+
+Here's a way that I generate a list of starting conditions with slightly different values
+
+Basically, a loop of loops over the elements 
+
+
+```{r, echo=TRUE}
+inits <- list(s0 = max(flound$ssb) * 1.5, r0 = max(flound$recruits), h = 0.7)
+
+inits <- lapply(1:chains, function(x) lapply(inits, jitter,10))
+
+inits
+
+```
+
+
+---
+
 
 # Some weird things in passing data
 
@@ -1613,6 +1668,22 @@ real y[N];
 array[N] real y;
 ```
 Are the same
+
+---
+
+# Debugging Stan
+
+Debugging compiled languages is a skill that takes practice: you can't just go line-by-line and try things!
+
+There's a "check" button in the top-right corner of .stan files in RStudio
+  - This will check if your file is *syntactically correct* 
+
+`print(this_should_work);` prints out the content as the code runs
+  - A good way to see if you accidentally have negative fish
+  
+`algorithm = "Fixed_param"` is crazy handy
+  - Forces Stan to keep sampling from the same initial parameters you pass it
+  - Good way to test model behavior under specific parameters
 
 ---
 
@@ -1657,8 +1728,8 @@ Let's calculate the mean and 80% credible interval for each type of prediction o
 fitted_recruits <-  fitted_recruits %>% 
   group_by(year, .variable) %>%
   summarise(rhat = mean(.value),
-            lower = quantile(.value, 0.1),
-            upper = quantile(.value, 0.9)) %>% 
+            lower = quantile(.value, .055),
+            upper = quantile(.value, .945)) %>% 
   ungroup() %>% 
   mutate(year = year + min(flound$year) - 1)
 
@@ -1682,10 +1753,11 @@ fitted_recruits %>%
   geom_ribbon(aes(ssb,ymin = lower, ymax = upper, fill = .variable), alpha = 0.25) + 
   geom_line(aes(ssb,rhat,color = .variable)) + 
   scale_x_continuous(limits = c(0,NA), name = "SSB") +
-  scale_y_continuous(name = "Recruits") +
+  scale_y_continuous(name = "Recruits", limits = c(0, NA)) +
   theme(legend.position = "top") + 
   scale_fill_discrete(name = '', labels = c("Posterior Predictive","Mean Prediction")) + 
-    scale_color_discrete(name = '',labels = c("Posterior Predictive","Mean Prediction"))
+    scale_color_discrete(name = '',labels = c("Posterior Predictive","Mean Prediction")) + 
+  labs(caption = "Bands show 89% credible interval")
 
 
 ```
@@ -1725,8 +1797,8 @@ As an alternative, you can use the `algorithm = "Fixed_param"` option, and apply
 
 Bayesian and Frequentist methods both make assumptions that may be more or less valid in different circumstances
 
-- Can be much slower, especially for large models
-  - But getting much faster
+- Can be slower (but getting faster), especially for large models
+  - But might not be the answer for your spatial-temporal model with 10,000 latent variables
 
 - Setting priors can be tough
   - Can't set multiple priors on the same thing
@@ -1735,16 +1807,17 @@ Bayesian and Frequentist methods both make assumptions that may be more or less 
 - Can be abused...
   - No more significance so anything goes!
   - With strong enough priors anything is estimable... 
-- Readers may be uncomfortable with it
+- Readers (reviewers) may be uncomfortable with it
   - Where's the regression table? **WHERE ARE THE P-VALUES**
   - Always clearly present your priors, and include sensitivity analyses
+  - See Schad et al. (2019) "Toward a principled Bayesian workflow in cognitive science"
   
 
 ---
 
 # Where to learn more?
 
-Bayesian modeling and stan are big and complex topics
+Bayesian modeling and Stan are big and complex topics
 
   - They can be extremely useful in ecological modeling
 
