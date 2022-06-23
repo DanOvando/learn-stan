@@ -4,10 +4,9 @@ int<lower = 0> n_years; // the number of years
 
 vector[n_years] years; // years
 
-vector[n_years] index; // cpue index
+vector[n_years] index; // abundance index (usually CPUE)
 
-vector[n_years] harvest; // vector of catch, since apparantly catch is a reserved word
-
+vector[n_years] harvest; // vector of harvestm not using catch since cates since apparantly catch is a reserved word
 
 }
 
@@ -25,12 +24,9 @@ parameters{
 
   real log_k; //carrying capacity
 
-  real <lower = 0, upper = 0.5> q;
+  real <lower = 1e-9, upper = 1> q;
 
   real<lower = 0> sigma_observation; // observation error
-
-  vector<lower=0, upper=0.8>[n_years]  u; //  fishing mortality
-
 
 }
 
@@ -40,100 +36,58 @@ real r;
 
 real k;
 
-// real q;
+vector[n_years] biomass; // vector of biomass
 
-// vector[n_years] u; //  process deviations
+vector[n_years] index_hat; // vector of estimated index
 
-vector[n_years] population; // vector of population deviations
-
-  vector[n_years] harvest_hat; // vector of estimated harvest
-
-  vector[n_years] index_hat; // vector of estimated index
-
-  vector[n_years] log_index_hat; // vector of estimated index
-
-  real temp;
-
-  real counter;
-
-  counter = 0;
-
-// u = 1 ./ iu;
+vector[n_years] log_index_hat; // vector of log estimated index
 
 r = exp(log_r);
 
 k = exp(log_k);
 
-// q = 1/iq;
 
-
-population[1] = k;
-
-harvest_hat[1] = population[1] * u[1];
-
-// population[1] = k;
+biomass[1] = k;
 
   for (t in 2:n_years){
 
-    temp = (population[t - 1] + r * population[t - 1] * (1 - population[t - 1]/k) - harvest_hat[t - 1]);
-
-    population[t] = temp;
-
-    harvest_hat[t] = population[t] * u[t];
-
-
-    // if (temp < 0.001) {
-    // counter = counter + 1;
-    //   population[t] = 1/(2-temp/0.001);
-    //
-    // } else {
-
-    // }
-
-// print(counter)
+    biomass[t] = fmax(1e-6,(biomass[t - 1] + r * biomass[t - 1] * (1 - biomass[t - 1]/k) - harvest[t - 1])); // note use of fmax here to precent population from going negative. Not the best solution, just an illustration of how to do it. 
 
   } // close loop
 
-  // print(counter)
+  index_hat = q * biomass; // generate abundance index
 
-  index_hat = q * population; //* k;
-
-  log_index_hat = log(index_hat);
+  log_index_hat = log(index_hat); // log transform
+  
 }
 
 model{
 
-  // observation model
-
-  // u ~ normal(0, sigma_u);
-
   log_index ~ normal(log_index_hat, sigma_observation);
 
-  log(harvest) ~ normal(log(harvest_hat), 1e-3);
-
-  log_k ~ uniform(log(2000),log(8000));
-
   log_r ~ normal(log(.2), 0.25);
+  
+  log_k ~ normal(8,2);
 
-  sigma_observation ~ normal(0,2);
-
-  // sigma_harvest ~ normal(0,2);
-
-  // sigma_u ~ normal(0,1);
+  sigma_observation ~ cauchy(0,2.5);
 
 
 }
 
 generated quantities{
 
-vector[n_years] pp_log_index_hat;
+vector[n_years] pp_log_index;
+
+vector[n_years] pp_index;
 
 
  for (i in 1:n_years){
 
-    pp_log_index_hat[i] = normal_rng(log_index_hat[i], sigma_observation);
+    pp_log_index[i] = normal_rng(log_index_hat[i], sigma_observation);
 
  }
+ 
+pp_index = exp(pp_log_index); 
 
 }
 

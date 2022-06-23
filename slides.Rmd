@@ -348,7 +348,7 @@ set.seed(42)
 x <- 1:500 #make up independent data
 true_param <- .5 # true relationship between x and y
 y <- true_param * x # simulate y
-steps <- 1e5 # number of MCMC steps to take
+steps <- 1e4 # number of MCMC steps to take
 param <- rep(0, steps) # vector of parameter values
 old_fit <- log(sum((y - (x * param[1]))^2)) # fit at starting guess
 jumpyness <- 1 # controls random jumping around
@@ -868,10 +868,11 @@ sad_model <-
     log(lifeExp) ~ log(gdpPercap) + (year | country),
     data = gapminder,
     cores = 4,
+    chains = 4,
     refresh = 0,
     adapt_delta = 0.2,
     iter = 2000,
-    warmup = 100
+    warmup = 400
   )
 
 
