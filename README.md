@@ -18,11 +18,32 @@ The goal of this repo is to get users comfortable writing, diagnosing,
 and using Stan models. I assume that if you’re reading this you know you
 want to do Bayesian modeling and you’re interested in learning how to do
 it in Stan. If you’re not quite there yet, some of the terminology in
-here may be confusing, and I strongly recommend [“Bayesian Models A
-Statistical Primer for
-Ecologists”](https://press.princeton.edu/titles/10523.html) as a great
-starting place for learning about Bayesian analysis. This workshop also
-assumes you work in or are at least comfortable with R.
+here may be confusing, and I strongly recommend
+
+Recommended Books
+
+-   [Statistical
+    Rethinking](https://xcelab.net/rm/statistical-rethinking/)
+
+-   [Bayesian Models: A Statistical Primer for
+    Ecologists](https://xcelab.net/rm/statistical-rethinking/)
+
+-   [Bayesian Data Analysis](http://www.stat.columbia.edu/~gelman/book/)
+
+Online Resources
+
+-   the Stan [community](https://discourse.mc-stan.org/)
+
+-   Stan [documentation](https://mc-stan.org/rstan/)
+
+-   [Example](https://github.com/stan-dev/example-models) models
+    (including reworked BUGS examples)
+
+-   [My
+    tutorial](https://www.weirdfishes.blog/blog/fitting-bayesian-models-with-stan-and-r/)
+
+This workshop also assumes you work in or are at least comfortable with
+R.
 
 There are lots of more detailed and technical resources for learning
 Stan out there, and any user interested in using Stan in their research

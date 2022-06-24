@@ -22,7 +22,27 @@ There are also a few example scripts, for example `hake_schaefer_model.R` shows 
 
 # A Practical Introduction to Stan
 
-The goal of this repo is to get users comfortable writing, diagnosing, and using Stan models. I assume that if you're reading this you know you want to do Bayesian modeling and you're interested in learning how to do it in Stan. If you're not quite there yet, some of the terminology in here may be confusing, and I strongly recommend ["Bayesian Models A Statistical Primer for Ecologists"](https://press.princeton.edu/titles/10523.html) as a great starting place for learning about Bayesian analysis. This workshop also assumes you work in or are at least comfortable with R. 
+The goal of this repo is to get users comfortable writing, diagnosing, and using Stan models. I assume that if you're reading this you know you want to do Bayesian modeling and you're interested in learning how to do it in Stan. If you're not quite there yet, some of the terminology in here may be confusing, and I strongly recommend 
+
+Recommended Books
+
+- [Statistical Rethinking](https://xcelab.net/rm/statistical-rethinking/)
+
+- [Bayesian Models: A Statistical Primer for Ecologists](https://xcelab.net/rm/statistical-rethinking/)
+
+- [Bayesian Data Analysis](http://www.stat.columbia.edu/~gelman/book/)
+
+Online Resources
+
+- the Stan [community](https://discourse.mc-stan.org/)
+
+- Stan [documentation](https://mc-stan.org/rstan/)
+
+- [Example](https://github.com/stan-dev/example-models) models (including reworked BUGS examples)
+
+- [My tutorial](https://www.weirdfishes.blog/blog/fitting-bayesian-models-with-stan-and-r/)
+
+This workshop also assumes you work in or are at least comfortable with R. 
 
 There are lots of more detailed and technical resources for learning Stan out there, and any user interested in using Stan in their research should be sure to read further to really understand what Stan is doing and why (the [official documentation](http://mc-stan.org/users/documentation/) is very good, and [Monnahan et al. 2016](http://onlinelibrary.wiley.com/doi/10.1111/2041-210X.12681/abstract) provides a great introduction to Stan for those with an Ecological bent). 
 
