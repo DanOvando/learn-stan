@@ -30,7 +30,7 @@ class: center, middle, inverse, title-slide
 ### Dan Ovando
 ]
 .date[
-### Updated 2022-06-13
+### Updated 2022-06-23
 ]
 
 ---
@@ -550,8 +550,8 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## 
 ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 9.9e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.99 seconds.
+## Chain 1: Gradient evaluation took 8.4e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.84 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -560,9 +560,9 @@ simple_lifexp_model &lt;- rstanarm::stan_glm(lifeExp ~ gdpPercap,
 ## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.06915 seconds (Warm-up)
-## Chain 1:                0.164397 seconds (Sampling)
-## Chain 1:                0.233547 seconds (Total)
+## Chain 1:  Elapsed Time: 0.060138 seconds (Warm-up)
+## Chain 1:                0.159642 seconds (Sampling)
+## Chain 1:                0.21978 seconds (Total)
 ## Chain 1:
 ```
 
@@ -967,10 +967,11 @@ sad_model &lt;-
     log(lifeExp) ~ log(gdpPercap) + (year | country),
     data = gapminder,
     cores = 4,
+    chains = 4,
     refresh = 0,
     adapt_delta = 0.2,
     iter = 2000,
-    warmup = 100
+    warmup = 400
   )
 ```
 
@@ -1198,7 +1199,7 @@ lifexp_model %&gt;%
 # Statistical Tests - Bayesian vs. Frequentist
 
 
-&lt;img src="prez/imgs/rethinking-golem.png" width="1699" height="450" style="display: block; margin: auto;" /&gt;
+&lt;img src="imgs/rethinking-golem.png" width="1699" height="450" style="display: block; margin: auto;" /&gt;
 
 .footnote[McElreath -Statistical Rethinking ]
 

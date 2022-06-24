@@ -1013,7 +1013,7 @@ lifexp_model %>%
 
 
 ```{r, echo = FALSE, out.height=450}
-knitr::include_graphics(here::here("prez","imgs","rethinking-golem.png"))
+knitr::include_graphics(here::here("imgs","rethinking-golem.png"))
 ```
 
 .footnote[McElreath -Statistical Rethinking ]

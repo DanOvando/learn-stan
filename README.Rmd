@@ -11,72 +11,70 @@ knitr::opts_chunk$set(
 )
 ```
 
+# TL:DR
+
+The slide for this workshop are available [here](https://danovando.github.io/learn-stan/slides#1)
+
+The code for the slides lives in `slides.Rmd`
+
+There are also a few example scripts, for example `hake_schaefer_model.R` shows how to fit a Schaefer model given catch and CPUE data from a hake fishery. 
+
+
 # A Practical Introduction to Stan
 
-The goal of this document is to get users comfortable writing, diagnosing, and using Stan models. I assume that if you're reading this you know you want to do Bayesian modeling and you're interested in learning how to do it in Stan. If you're not quite there yet, some of the terminology in here may be confusing, and I strongly recommend ["Bayesian Models A Statistical Primer for Ecologists"](https://press.princeton.edu/titles/10523.html) as a great starting place for learning about Bayesian analysis. This workshop also assumes you work in or are at least comfortable with R. 
+The goal of this repo is to get users comfortable writing, diagnosing, and using Stan models. I assume that if you're reading this you know you want to do Bayesian modeling and you're interested in learning how to do it in Stan. If you're not quite there yet, some of the terminology in here may be confusing, and I strongly recommend ["Bayesian Models A Statistical Primer for Ecologists"](https://press.princeton.edu/titles/10523.html) as a great starting place for learning about Bayesian analysis. This workshop also assumes you work in or are at least comfortable with R. 
 
 There are lots of more detailed and technical resources for learning Stan out there, and any user interested in using Stan in their research should be sure to read further to really understand what Stan is doing and why (the [official documentation](http://mc-stan.org/users/documentation/) is very good, and [Monnahan et al. 2016](http://onlinelibrary.wiley.com/doi/10.1111/2041-210X.12681/abstract) provides a great introduction to Stan for those with an Ecological bent). 
 
-However, many of the available resources can be daunting to people unfamiliar with the Stan, or omit key steps in the "ok, but how do I actually do this" side of things. This workshop is intended to help users go from raw data to model fitting with real data and real use cases. I am in no way an expert on Stan, and this document is not intended to be a technically perfect explanation or example of the use of Stan, but rather a step-by-step example of how I at least have dealt with many of the kinds of problems that practical users encounter in using Stan (i.e. explanations are intended to be clear, not necessarily precise). Hopefully you can use this as a foundation then for building more rigorous analyses of your in in R and Stan. (Constructive) Comments and suggestions appreciated!
+However, many of the available resources can be daunting to people unfamiliar with the Stan, or omit key steps in the "ok, but how do I actually do this" side of things. This workshop is intended to help users go from raw data to model fitting with real data and real use cases.  This document is not intended to be a technically perfect explanation or example of the use of Stan, but rather a step-by-step example of how I at least have dealt with many of the kinds of problems that practical users encounter in using Stan (i.e. explanations are intended to be clear, not necessarily precise). Hopefully you can use this as a foundation then for building more rigorous analyses of your in in R and Stan. (Constructive) Comments and suggestions appreciated!
 
-## Pre-Workshop Instructions
+# Setup
 
-To begin with, please fork or clone this repository to the machine you will be using, since it contains scripts and data that we will ba making use of. 
+## Installing Stan
 
-**WARNING: DON'T UPGRADE TO CATALINA ON MACS!** Apparently there's a major issue running Stan on the latest macOS. 
+Instructions for installing rstan are provided in the following wiki
 
-Please make sure that
+https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
 
-  - If you don't have it, please install the `tidyverse` suite of packages using `install.packages("tidyverse")`. If you don't like using the `tidyverse` that's fine, but it will help you work along with the examples here
-  
-  - Also tnstall 
-    - `tidybayes`
-    - `bayesplot`
-    - `rstanarm`
-    - `gapminder`
+It doesn’t matter if you want to install the development or official release.
 
-Second, please go to Stan's instructions on installing Stan for use with R, which you can find [here](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started)
+Stan is a compiled language, meaning that there is some behind-the-scenes setup to your C++ toolchain that needs to be done so your computer can handle it.
 
-Installing Stan can be a bit complicated on some machines, especially if you haven't run programs that require a C++ compiler before (if that sentance doesn't make sense to you, this means you), so **PLEASE DON'T WAIT UNTIL THE MORNING OF THE WORKSHOP TO TRY AND INSTALL STAN**. Try to install it a few days beforehand, and if you can't get it to work let me know and I'll try to help. 
+Follow these instructions prior to trying to install rstan.
+The wiki contains links to instructions for setting up your C++ toolchain up [here](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#configuring-c-toolchain).
 
-To check that it works, once you've successfully done all the other steps please open R and run the code below. If it works, you're good to go!
+The instructions will vary depending on what operating system you use, and even the version of that operating system, and the version of R you are using. If you’re usually generally up-to-date systems this should be pretty straightforward, but the older the system you are running the trickier things might get, particularly if you are using R versions < 4.X
 
-```
+If you’ve never run any compiled languages before, the initial setup can take some time (e.g. downloading all the toolchain components on a Mac), so I recommend not trying to do this the morning of the workshop if your goal is to follow along.
+
+Once you’ve configured your toolchain and installed rstan, you can test to make sure everything is working by opening R and running
+
+```{r, eval = FALSE}
 library(rstan)
-stanmodelcode <- "
-data {
-  int<lower=0> N;
-  real y[N];
-} 
-
-parameters {
-  real mu;
-} 
-
-model {
-  target += normal_lpdf(mu | 0, 10);
-  target += normal_lpdf(y  | mu, 1);
-} 
-"
-
-y <- rnorm(20) 
-dat <- list(N = 20, y = y); 
-fit <- stan(model_code = stanmodelcode, model_name = "example", 
-            data = dat, iter = 2012, chains = 3, sample_file = 'norm.csv',
-            verbose = TRUE) 
-print(fit)
-traceplot(fit)
-
-# extract samples 
-e <- extract(fit, permuted = TRUE) # return a list of arrays 
-mu <- e$mu 
-
-m <- extract(fit, permuted = FALSE, inc_warmup = FALSE) # return an array 
-print(dimnames(m))
-
-# using as.array directly on stanfit objects 
-m2 <- as.array(fit)
-
+example(stan_model, package = "rstan", run.dontrun = TRUE)
 ```
+
+
 
 Share and enjoy!
+
+## Installing dependencies
+
+This repository is equipped with [`renv`](https://rstudio.github.io/renv/).
+
+To install the required packages, simply install the `renv` package using
+
+```{r, eval = FALSE}
+install.packages("renv")
+```
+
+And then after ensuring the working directory is appropriately set to the location of the project for this repository, running
+
+```{r, eval = FALSE}
+renv::restore()
+```
+
+And following all prompts. To the best of its abilities `renv` will install the appropriate versions of the packges needed to run this repo, and will not affect other versions of your packages located in your main library.  
+
+
+
